@@ -20,15 +20,14 @@ The app opens **Haier's own sign-in page** inside the app. You type your email a
 
 ### From GitHub (easiest)
 
-Every push to `main` builds the app on GitHub.
+Every push to `main` builds the app on GitHub and publishes it on the repo's **Releases** page.
 
-1. Open the repo's **Actions** tab and click the latest green **Build Android APK** run.
-2. Under **Artifacts**, download **washer-apk**. GitHub serves it as a zip.
-3. Unzip it and open `app-release.apk` on your phone. Android will ask you to allow installs from that app the first time.
+1. On your phone, open the repo's [latest release](../../releases/latest) (sign in to GitHub if asked).
+2. Tap `washer-build-N.apk` to download it, then open it. Android will ask you to allow installs from your browser the first time.
 
-To build without pushing, use **Run workflow** on the same page.
+Newer builds install over older ones and keep your sign-in. To build without pushing, use **Run workflow** on the Actions tab (builds from other branches show up as pre-releases).
 
-The APK is signed with Expo's shared debug key. That's fine for your own phone (newer builds install over older ones), but it can't go on the Play Store.
+The APK is signed with Expo's shared debug key. That's fine for your own phone, but it can't go on the Play Store.
 
 ### With Expo's cloud build
 
