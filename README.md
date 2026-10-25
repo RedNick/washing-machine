@@ -22,7 +22,7 @@ The app opens **Haier's own sign-in page** inside the app. You type your email a
 
 Every push to `main` builds the app on GitHub and publishes it on the repo's **Releases** page.
 
-1. On your phone, open the repo's [latest release](../../releases/latest) (sign in to GitHub if asked).
+1. On your phone, open the repo's [latest release](https://github.com/RedNick/washing-machine/releases/latest) (sign in to GitHub if asked).
 2. Tap `washer-build-N.apk` to download it, then open it. Android will ask you to allow installs from your browser the first time.
 
 Newer builds install over older ones and keep your sign-in. To build without pushing, use **Run workflow** on the Actions tab (builds from other branches show up as pre-releases).
