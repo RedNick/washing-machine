@@ -18,7 +18,21 @@ The app opens **Haier's own sign-in page** inside the app. You type your email a
 
 ## Install it on your phone
 
-You need a free [Expo](https://expo.dev) account (it builds the APK in the cloud, so no Android Studio is needed).
+### From GitHub (easiest)
+
+Every push to `main` builds the app on GitHub.
+
+1. Open the repo's **Actions** tab and click the latest green **Build Android APK** run.
+2. Under **Artifacts**, download **washer-apk**. GitHub serves it as a zip.
+3. Unzip it and open `app-release.apk` on your phone. Android will ask you to allow installs from that app the first time.
+
+To build without pushing, use **Run workflow** on the same page.
+
+The APK is signed with Expo's shared debug key. That's fine for your own phone (newer builds install over older ones), but it can't go on the Play Store.
+
+### With Expo's cloud build
+
+You need a free [Expo](https://expo.dev) account.
 
 ```sh
 npm install
@@ -26,9 +40,9 @@ npx eas-cli@latest login
 npx eas-cli@latest build --platform android --profile preview
 ```
 
-When the build finishes, open the link it prints on your phone and install the APK. Android will ask you to allow installs from your browser the first time.
+When the build finishes, open the link it prints on your phone and install the APK.
 
-If you do have Android Studio, `npm run android` with the phone plugged in (USB debugging on) builds and installs it directly.
+If you have Android Studio, `npm run android` with the phone plugged in (USB debugging on) builds and installs it directly.
 
 > The app uses features that Expo Go doesn't include (background checks, secure storage), so use one of the builds above rather than Expo Go.
 

@@ -1,0 +1,67 @@
+# Checks the app and builds an installable Android APK on every push.
+#
+# Download the APK from the run's "Artifacts" section on the Actions tab.
+# It is a release build (the app runs on its own, no development server),
+# signed with Expo's shared debug key, so it is fine for your own phone but
+# not for the Play Store.
+
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: # lets you start a build by hand from the Actions tab
+
+# A newer push to the same branch cancels the older, now pointless, build.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test -- --ci
+
+  build-apk:
+    name: Build APK
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: npm ci
+
+      # Generates the native android/ project from app.json. It isn't kept in
+      # the repo, so this runs on every build.
+      - name: Generate the Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build the APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Upload the APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: washer-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
