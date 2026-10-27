@@ -57,6 +57,10 @@ npm run typecheck  # TypeScript
 npm start          # Metro bundler for a development build
 ```
 
+On GitHub, each APK is also opened on an Android emulator (`scripts/launch-test.sh`) and is only published if the app starts without crashing. If that check fails, the run's `launch-test` download has the device log and a screenshot.
+
+Code shrinking (R8) is turned off for release builds in `app.json`. It removed classes that Android's background-task scheduler needs, which made build 4 crash on launch.
+
 ### Layout
 
 | Folder | What's in it |

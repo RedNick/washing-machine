@@ -1,8 +1,10 @@
 # Checks the app and builds an installable Android APK.
 #
-# Builds from main (and builds started by hand) are published on the repo's
-# Releases page as a plain .apk file you can open straight on the phone.
-# Pull request builds only check that the app still builds.
+# Every build is opened on an Android emulator first, and only published if
+# the app starts without crashing. Builds from main (and builds started by
+# hand) are then published on the repo's Releases page as a plain .apk file
+# you can open straight on the phone. Pull request builds stop after the
+# emulator check.
 #
 # It is a release build (the app runs on its own, no development server),
 # signed with Expo's shared debug key, so it is fine for your own phone but
@@ -39,8 +41,6 @@ jobs:
     name: Build APK
     needs: check
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # needed to create the release that holds the APK
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -64,17 +64,74 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
 
-      # GitHub zips anything uploaded as a run artifact, so the APK goes on
-      # a release instead, where it downloads as a plain .apk file.
+      # Hands the APK to the jobs below. Only those jobs use this copy; the
+      # one people download is on the Releases page.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 3
+
+  launch-test:
+    name: Open the app on an emulator
+    needs: build-apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+
+      - name: Let the emulator use hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Catches crashes on launch (like build 4's) before anyone installs it.
+      - name: Open the app and check it keeps running
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          disable-animations: true
+          script: ./scripts/launch-test.sh app-release.apk
+
+      - name: Keep the device log and screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-test
+          path: |
+            launch-logcat.txt
+            launch-screenshot.png
+          retention-days: 7
+
+  publish:
+    name: Publish the APK
+    needs: launch-test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to create the release that holds the APK
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+
+      # GitHub zips anything downloaded from a run, so the APK goes on a
+      # release instead, where it downloads as a plain .apk file.
       - name: Publish the APK as a release
-        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           BUILD_NUMBER: ${{ github.run_number }}
           IS_MAIN: ${{ github.ref == 'refs/heads/main' }}
         run: |
           apk_name="washer-build-${BUILD_NUMBER}.apk"
-          cp android/app/build/outputs/apk/release/app-release.apk "$apk_name"
+          cp app-release.apk "$apk_name"
 
           # Builds of other branches are marked as pre-releases, so the
           # "latest" release is always the newest build of main.
