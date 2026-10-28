@@ -1,4 +1,4 @@
-# Washer
+# h.off
 
 A fast, simple Android app for Haier, Candy and Hoover washing machines that use the h.on app.
 
@@ -16,7 +16,7 @@ It talks to the same Haier cloud as h.on, but does far less, so it opens quickly
 
 The app opens **Haier's own sign-in page** in a Chrome tab. You sign in there, with your email and password or with **Sign in with Google** (Chrome offers the Google accounts already on your phone). Haier then hands the app sign-in tokens through an `hon://` link. The app keeps only the long-lived refresh token, in Android's encrypted storage. It never sees or stores your password.
 
-The app answers `hon://` links for this, the same as the official h.on app. If both apps are installed, Android may ask once which one should open the link: pick Washer.
+The app answers `hon://` links for this, the same as the official h.on app. If both apps are installed, Android may ask once which one should open the link: pick h.off.
 
 > Why not the Android account picker? It would sign you in to *this* app, and Haier's servers only accept a Google sign-in made on Haier's own page. Google also blocks its sign-in inside in-app web views, which is why the page opens in Chrome.
 
@@ -27,7 +27,7 @@ The app answers `hon://` links for this, the same as the official h.on app. If b
 Every push to `main` builds the app on GitHub and publishes it on the repo's **Releases** page.
 
 1. On your phone, open the repo's [latest release](https://github.com/RedNick/washing-machine/releases/latest) (sign in to GitHub if asked).
-2. Tap `washer-build-N.apk` to download it, then open it. Android will ask you to allow installs from your browser the first time.
+2. Tap `h-off-build-N.apk` to download it, then open it. Android will ask you to allow installs from your browser the first time.
 
 Newer builds install over older ones and keep your sign-in. To build without pushing, use **Run workflow** on the Actions tab (builds from other branches show up as pre-releases).
 
