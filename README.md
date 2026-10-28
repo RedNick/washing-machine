@@ -14,7 +14,11 @@ It talks to the same Haier cloud as h.on, but does far less, so it opens quickly
 
 ## How sign-in works
 
-The app opens **Haier's own sign-in page** inside the app. You type your email and password there, not into this app, and Haier hands the app sign-in tokens when you're done. The app keeps only the long-lived refresh token, in Android's encrypted storage. It never sees or stores your password.
+The app opens **Haier's own sign-in page** in a Chrome tab. You sign in there, with your email and password or with **Sign in with Google** (Chrome offers the Google accounts already on your phone). Haier then hands the app sign-in tokens through an `hon://` link. The app keeps only the long-lived refresh token, in Android's encrypted storage. It never sees or stores your password.
+
+The app answers `hon://` links for this, the same as the official h.on app. If both apps are installed, Android may ask once which one should open the link: pick Washer.
+
+> Why not the Android account picker? It would sign you in to *this* app, and Haier's servers only accept a Google sign-in made on Haier's own page. Google also blocks its sign-in inside in-app web views, which is why the page opens in Chrome.
 
 ## Install it on your phone
 

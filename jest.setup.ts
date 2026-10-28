@@ -10,8 +10,3 @@ jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
 }));
 
-// The sign-in page's WebView is native-only; a plain View is enough here.
-jest.mock('react-native-webview', () => {
-  const { View } = jest.requireActual('react-native');
-  return { WebView: View, default: View };
-});
