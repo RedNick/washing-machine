@@ -48,6 +48,11 @@ export const sampleCatalogue: HonCommandCatalogue = {
         },
         weight: { category: 'command', typology: 'fixed', mandatory: 1, fixedValue: '40' },
         prStr: { category: 'command', typology: 'fixed', mandatory: 1, fixedValue: '' },
+        // The machine's display language: sent with the program, never shown.
+        lang: { category: 'command', typology: 'range', mandatory: 1, defaultValue: '0', minimumValue: '0', maximumValue: '30', incrementValue: '1' },
+        delayStatus: { category: 'command', typology: 'enum', mandatory: 1, defaultValue: '0', enumValues: [0, 1] },
+        extraRinse1: { category: 'command', typology: 'enum', mandatory: 1, defaultValue: '1', enumValues: [0, 1] },
+        extraRinse2: { category: 'command', typology: 'enum', mandatory: 1, defaultValue: '0', enumValues: [0, 1] },
       },
       ancillaryParameters: {
         remoteVisible: { category: 'general', typology: 'fixed', mandatory: 0, fixedValue: '1' },

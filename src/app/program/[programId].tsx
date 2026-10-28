@@ -4,12 +4,13 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 're
 
 import { ActionButton } from '../../components/ActionButton';
 import { Card } from '../../components/Card';
+import { DelayStartControl } from '../../components/DelayStartControl';
 import { ProgramOptionControl } from '../../components/ProgramOptionControl';
 import { spacing, useThemeColours } from '../../components/theme';
 import { formatDuration } from '../../washer/formatters';
 import { usePrograms } from '../../washer/usePrograms';
 import { useConnectedWasher, useWasher } from '../../washer/WasherContext';
-import type { ChosenOptions, ProgramOption, WasherProgram } from '../../washer/washerTypes';
+import { DELAY_OPTION_KEY, type ChosenOptions, type ProgramOption, type WasherProgram } from '../../washer/washerTypes';
 
 function defaultChoices(program: WasherProgram): ChosenOptions {
   const choices: ChosenOptions = {};
@@ -75,14 +76,24 @@ export default function ProgramScreen() {
 
         {program.options.length > 0 ? (
           <Card title="Options">
-            {program.options.map((option) => (
-              <ProgramOptionControl
-                key={option.key}
-                option={option}
-                value={chosenOptions[option.key] ?? option.defaultValue}
-                onChange={(newValue) => updateOption(option, newValue)}
-              />
-            ))}
+            {program.options.map((option) =>
+              option.key === DELAY_OPTION_KEY && option.kind === 'range' ? (
+                <DelayStartControl
+                  key={option.key}
+                  option={option}
+                  estimatedMinutes={program.estimatedMinutes}
+                  delayMinutes={Number(chosenOptions[option.key] ?? option.defaultValue)}
+                  onChange={(newDelay) => updateOption(option, newDelay)}
+                />
+              ) : (
+                <ProgramOptionControl
+                  key={option.key}
+                  option={option}
+                  value={chosenOptions[option.key] ?? option.defaultValue}
+                  onChange={(newValue) => updateOption(option, newValue)}
+                />
+              ),
+            )}
           </Card>
         ) : null}
 

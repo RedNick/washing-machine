@@ -16,6 +16,17 @@ export function formatFinishTime(remainingMinutes: number, now: Date = new Date(
   return finish.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+/**
+ * The clock time a number of minutes from now: "14:30", or "tomorrow 07:00"
+ * when it falls on the next day.
+ */
+export function formatClockTimeFromNow(minutesFromNow: number, now: Date = new Date()): string {
+  const moment = new Date(now.getTime() + minutesFromNow * 60 * 1000);
+  const time = moment.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const isSameDay = moment.toDateString() === now.toDateString();
+  return isSameDay ? time : `tomorrow ${time}`;
+}
+
 /** "Today 14:05", "Yesterday 09:30" or "12 Oct 18:20". */
 export function formatPastDate(date: Date, now: Date = new Date()): string {
   const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -65,5 +76,6 @@ export function formatOptionValue(key: string, value: string | number, unit: str
   if (key === 'temp' && Number(value) === 0) return 'Cold';
   if (key === 'spinSpeed' && Number(value) === 0) return 'No spin';
   if (key === 'delayTime') return Number(value) === 0 ? 'Off' : formatDuration(Number(value));
+  if (key === 'extraRinses') return Number(value) === 0 ? 'None' : String(value);
   return unit ? `${value} ${unit}` : String(value);
 }

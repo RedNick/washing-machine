@@ -1,4 +1,4 @@
-import { formatDuration, formatOptionValue, formatPastDate } from '../formatters';
+import { formatClockTimeFromNow, formatDuration, formatOptionValue, formatPastDate } from '../formatters';
 
 describe('formatDuration', () => {
   it.each([
@@ -19,6 +19,8 @@ describe('formatOptionValue', () => {
     expect(formatOptionValue('spinSpeed', '0', 'rpm')).toBe('No spin');
     expect(formatOptionValue('delayTime', 0, 'min')).toBe('Off');
     expect(formatOptionValue('delayTime', 90, 'min')).toBe('1 h 30 min');
+    expect(formatOptionValue('extraRinses', '0', null)).toBe('None');
+    expect(formatOptionValue('extraRinses', '2', null)).toBe('2');
   });
 });
 
@@ -29,5 +31,14 @@ describe('formatPastDate', () => {
     expect(formatPastDate(new Date(2026, 9, 25, 9, 30), now)).toMatch(/^Today /);
     expect(formatPastDate(new Date(2026, 9, 24, 21, 0), now)).toMatch(/^Yesterday /);
     expect(formatPastDate(new Date(2026, 9, 12, 18, 20), now)).not.toMatch(/^(Today|Yesterday)/);
+  });
+});
+
+describe('formatClockTimeFromNow', () => {
+  const now = new Date(2026, 9, 28, 21, 15);
+
+  it('says "tomorrow" only when the time is on the next day', () => {
+    expect(formatClockTimeFromNow(90, now)).not.toMatch(/tomorrow/);
+    expect(formatClockTimeFromNow(180, now)).toMatch(/^tomorrow /);
   });
 });

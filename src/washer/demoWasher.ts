@@ -32,7 +32,7 @@ const DEMO_PROGRAMS: WasherProgram[] = [
       { kind: 'choice', key: 'spinSpeed', label: 'Spin speed', choices: SPIN_CHOICES, defaultValue: '1400', unit: 'rpm' },
       { kind: 'range', key: 'delayTime', label: 'Delay start', minimum: 0, maximum: 1410, step: 30, defaultValue: 0, unit: 'min' },
       { kind: 'toggle', key: 'prewash', label: 'Prewash', defaultValue: false },
-      { kind: 'toggle', key: 'extraRinse1', label: 'Extra rinse', defaultValue: false },
+      { kind: 'choice', key: 'extraRinses', label: 'Extra rinses', choices: ['0', '1', '2', '3'], defaultValue: '0', unit: null },
     ],
   },
   {
