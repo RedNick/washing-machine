@@ -7,7 +7,7 @@ It talks to the same Haier cloud as h.on, but does far less, so it opens quickly
 ## What it does
 
 - **Now**: what the machine is doing, the time left and when it will finish, with Pause, Resume and Stop.
-- **Programs**: every program your machine offers, with its options (temperature, spin, delay start, extra rinse…). Tap Start.
+- **Programs**: every program your machine offers, with its options (temperature, spin, delay start, extra rinse…). Tap Start. Star the ones you use most to keep them at the top. The rest are grouped (Everyday, Quick, Delicates, Care and hygiene, Rinse and spin), and **Edit list** hides the ones you never use.
 - **History**: lifetime energy, water and wash counts, how often you use each temperature, the washes you've run, and recent commands.
 - **"Wash finished" alerts**: the phone schedules an alert for the moment the wash ends, and keeps it in step as the time left changes. Nothing else needs to run anywhere.
 - **Demo machine**: try everything without an h.on account. A demo wash runs at one machine minute per second.
@@ -75,6 +75,7 @@ Code shrinking (R8) is turned off for release builds in `app.json`. It removed c
 | `src/notifications/` | The "wash finished" alert. `planFinishAlert.ts` decides what to do and `finishAlertScheduler.ts` does it. |
 | `src/background/` | The check Android runs about every 15 minutes while the app is closed. |
 | `src/storage/` | Secure token storage and the on-phone log of finished washes. |
+| `src/programs/` | Organising the program list: groups, favourites and hidden programs (saved on the phone). |
 | `src/components/` | Small shared UI pieces and colours. |
 
 Screens only use the `WasherService` interface in `src/washer/washerTypes.ts`. `HonCloudWasher` (the real machine) and `DemoWasher` both implement it.
