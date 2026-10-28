@@ -7,14 +7,18 @@ It talks to the same Haier cloud as h.on, but does far less, so it opens quickly
 ## What it does
 
 - **Now**: what the machine is doing, the time left and when it will finish, with Pause, Resume and Stop.
-- **Programs**: every program your machine offers, with its options (temperature, spin, delay start, extra rinse…). Tap Start.
+- **Programs**: every program your machine offers, with its options (temperature, spin, delay start, extra rinse…). Tap Start. Star the ones you use most to keep them at the top. The rest are grouped (Everyday, Quick, Delicates, Care and hygiene, Rinse and spin), and **Edit list** hides the ones you never use.
 - **History**: lifetime energy, water and wash counts, how often you use each temperature, the washes you've run, and recent commands.
 - **"Wash finished" alerts**: the phone schedules an alert for the moment the wash ends, and keeps it in step as the time left changes. Nothing else needs to run anywhere.
 - **Demo machine**: try everything without an h.on account. A demo wash runs at one machine minute per second.
 
 ## How sign-in works
 
-The app opens **Haier's own sign-in page** inside the app. You type your email and password there, not into this app, and Haier hands the app sign-in tokens when you're done. The app keeps only the long-lived refresh token, in Android's encrypted storage. It never sees or stores your password.
+The app opens **Haier's own sign-in page** in a Chrome tab. You sign in there, with your email and password or with **Sign in with Google** (Chrome offers the Google accounts already on your phone). Haier then hands the app sign-in tokens through an `hon://` link. The app keeps only the long-lived refresh token, in Android's encrypted storage. It never sees or stores your password.
+
+The app answers `hon://` links for this, the same as the official h.on app. If both apps are installed, Android may ask once which one should open the link: pick Washer.
+
+> Why not the Android account picker? It would sign you in to *this* app, and Haier's servers only accept a Google sign-in made on Haier's own page. Google also blocks its sign-in inside in-app web views, which is why the page opens in Chrome.
 
 ## Install it on your phone
 
@@ -71,6 +75,7 @@ Code shrinking (R8) is turned off for release builds in `app.json`. It removed c
 | `src/notifications/` | The "wash finished" alert. `planFinishAlert.ts` decides what to do and `finishAlertScheduler.ts` does it. |
 | `src/background/` | The check Android runs about every 15 minutes while the app is closed. |
 | `src/storage/` | Secure token storage and the on-phone log of finished washes. |
+| `src/programs/` | Organising the program list: groups, favourites and hidden programs (saved on the phone). |
 | `src/components/` | Small shared UI pieces and colours. |
 
 Screens only use the `WasherService` interface in `src/washer/washerTypes.ts`. `HonCloudWasher` (the real machine) and `DemoWasher` both implement it.

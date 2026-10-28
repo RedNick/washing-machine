@@ -1,65 +1,78 @@
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+import { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
 
 import { ActionButton } from '../components/ActionButton';
 import { spacing, useThemeColours } from '../components/theme';
 import { buildLoginPageUrl, isLoginRedirect, parseLoginRedirect } from '../hon/auth/honLogin';
+import { HON_LOGIN_REDIRECT_URI } from '../hon/honConstants';
 import { useWasher } from '../washer/WasherContext';
+
+/**
+ * Android can close the app while you're signing in in Chrome. It then
+ * reopens it with the "signed in" link as the launch link. This remembers
+ * whether that launch link has been used, so a later sign-out doesn't sign
+ * you straight back in with the same, already-used tokens.
+ */
+let hasCheckedLaunchLink = false;
 
 /**
  * First screen: sign in with your h.on account, or try the demo machine.
  *
- * Signing in opens Haier's own sign-in page inside the app. You type your
- * email and password into Haier's page, not into this app, and the app
- * only receives the resulting sign-in tokens.
+ * Signing in opens Haier's own sign-in page in a Chrome tab. You sign in
+ * there (with your email and password, or "Sign in with Google", which can
+ * use the Google accounts already on the phone), and Chrome hands the app
+ * only the resulting sign-in tokens.
  */
 export default function SignInScreen() {
   const { connection, signInWithTokens, startDemo } = useWasher();
   const colours = useThemeColours();
-  const [isShowingLoginPage, setIsShowingLoginPage] = useState(false);
-  const [isFinishingSignIn, setIsFinishingSignIn] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const [loginProblem, setLoginProblem] = useState<string | null>(null);
-  // A new address (with a fresh nonce) each time the page is opened.
-  const loginPageUrl = useMemo(() => (isShowingLoginPage ? buildLoginPageUrl() : ''), [isShowingLoginPage]);
 
   const errorMessage = loginProblem ?? (connection.kind === 'signedOut' ? connection.message : null);
 
-  /** Watches every page the web view tries to open, looking for the "done" redirect. */
-  const handleNavigation = (url: string): boolean => {
-    if (!isLoginRedirect(url)) return true;
-    const tokens = parseLoginRedirect(url);
-    setIsShowingLoginPage(false);
-    if (!tokens) {
-      setLoginProblem("h.on didn't finish signing you in. Please try again.");
-      return false;
-    }
-    setLoginProblem(null);
-    setIsFinishingSignIn(true);
-    void signInWithTokens(tokens).finally(() => setIsFinishingSignIn(false));
-    return false;
-  };
+  /** Reads the tokens from the "signed in" link and connects to the machine. */
+  const finishSignIn = useCallback(
+    async (redirectUrl: string) => {
+      const tokens = parseLoginRedirect(redirectUrl);
+      if (!tokens) {
+        setLoginProblem("h.on didn't finish signing you in. Please try again.");
+        return;
+      }
+      setLoginProblem(null);
+      await signInWithTokens(tokens);
+    },
+    [signInWithTokens],
+  );
 
-  if (isShowingLoginPage) {
-    return (
-      <SafeAreaView style={[styles.fill, { backgroundColor: colours.background }]}>
-        <WebView
-          source={{ uri: loginPageUrl }}
-          // Let the web view try to open hon:// so we can catch it.
-          originWhitelist={['https://*', 'hon://*']}
-          onShouldStartLoadWithRequest={(request) => handleNavigation(request.url)}
-          startInLoadingState
-          renderLoading={() => <ActivityIndicator style={styles.fill} color={colours.accent} />}
-          // Start each sign-in fresh rather than reusing a half-finished one.
-          incognito
-        />
-        <View style={styles.cancelRow}>
-          <ActionButton label="Cancel" look="secondary" onPress={() => setIsShowingLoginPage(false)} />
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // Pick up a sign-in that finished while the app was closed (see above).
+  useEffect(() => {
+    if (hasCheckedLaunchLink) return;
+    hasCheckedLaunchLink = true;
+    void Linking.getInitialURL().then((launchUrl) => {
+      if (!launchUrl || !isLoginRedirect(launchUrl)) return;
+      setIsSigningIn(true);
+      void finishSignIn(launchUrl).finally(() => setIsSigningIn(false));
+    });
+  }, [finishSignIn]);
+
+  const openLoginPage = async () => {
+    setLoginProblem(null);
+    setIsSigningIn(true);
+    try {
+      // A new address (with a fresh nonce) each time. The promise resolves
+      // when Chrome opens the "signed in" link or you close the tab.
+      const result = await WebBrowser.openAuthSessionAsync(buildLoginPageUrl(), HON_LOGIN_REDIRECT_URI);
+      if (result.type === 'success') await finishSignIn(result.url);
+    } catch {
+      setLoginProblem("Couldn't open the sign-in page. Check that Chrome is installed and try again.");
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.fill, styles.welcome, { backgroundColor: colours.background }]}>
@@ -80,18 +93,15 @@ export default function SignInScreen() {
       <View style={styles.buttonRow}>
         <ActionButton
           label="Sign in with h.on"
-          busy={isFinishingSignIn}
-          onPress={() => {
-            setLoginProblem(null);
-            setIsShowingLoginPage(true);
-          }}
+          busy={isSigningIn}
+          onPress={() => void openLoginPage()}
         />
       </View>
       <View style={styles.buttonRow}>
         <ActionButton label="Try the demo machine" look="secondary" onPress={() => void startDemo()} />
       </View>
       <Text style={[styles.footnote, { color: colours.mutedText }]}>
-        You sign in on Haier's own page. Your password never passes through this app, and your sign-in is kept in
+        You sign in on Haier's own page in Chrome, where you can also use your Google account. Your password never passes through this app, and your sign-in is kept in
         the phone's secure storage.
       </Text>
     </SafeAreaView>
@@ -106,6 +116,5 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 17, textAlign: 'center', marginTop: spacing.small, marginBottom: spacing.large },
   errorBox: { borderRadius: 12, padding: spacing.medium, marginBottom: spacing.medium },
   buttonRow: { flexDirection: 'row', marginTop: spacing.medium },
-  cancelRow: { flexDirection: 'row', padding: spacing.medium },
   footnote: { fontSize: 13, textAlign: 'center', marginTop: spacing.large },
 });

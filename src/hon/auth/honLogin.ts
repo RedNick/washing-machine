@@ -2,9 +2,9 @@ import { HON_AUTH_BASE_URL, HON_LOGIN_REDIRECT_URI, HON_OAUTH_CLIENT_ID } from '
 
 /**
  * Signing in works like the official app: we open Haier's own sign-in page
- * in a web view, the user types their email and password there, and when it
- * is done the page redirects to HON_LOGIN_REDIRECT_URI with the tokens in
- * the URL. This app never sees the password.
+ * (in a Chrome tab), the user signs in there, and when it is done the page
+ * redirects to HON_LOGIN_REDIRECT_URI with the tokens in the URL. This app
+ * never sees the password.
  */
 
 /** Tokens returned by the sign-in page. */
@@ -27,7 +27,7 @@ function generateNonce(): string {
   ].join('-');
 }
 
-/** The address of Haier's sign-in page, ready to open in a web view. */
+/** The address of Haier's sign-in page, ready to open in the browser. */
 export function buildLoginPageUrl(nonce: string = generateNonce()): string {
   const queryParts = [
     // The literal "+" is how the h.on app asks for both token types.
@@ -41,7 +41,7 @@ export function buildLoginPageUrl(nonce: string = generateNonce()): string {
   return `${HON_AUTH_BASE_URL}/services/oauth2/authorize/expid_Login?${queryParts.join('&')}`;
 }
 
-/** True when the web view is trying to open the "signed in" redirect. */
+/** True for the "signed in" redirect link. */
 export function isLoginRedirect(url: string): boolean {
   return url.startsWith(HON_LOGIN_REDIRECT_URI);
 }
