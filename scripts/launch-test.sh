@@ -8,7 +8,7 @@
 set -euo pipefail
 
 apk_path="$1"
-package_name="app.washingmachine.remote"
+package_name="uk.ncls.h.off"
 # Long enough for the app to load its JavaScript and draw the first screen.
 seconds_to_watch=30
 
