@@ -7,7 +7,7 @@ It talks to the same Haier cloud as h.on, but does far less, so it opens quickly
 ## What it does
 
 - **Now**: what the machine is doing, the time left and when it will finish, with Pause, Resume and Stop.
-- **Programs**: every program your machine offers, with its options (temperature, spin, delay start, extra rinse…). Tap Start. Star the ones you use most to keep them at the top. The rest are grouped (Everyday, Quick, Delicates, Care and hygiene, Rinse and spin), and **Edit list** hides the ones you never use.
+- **Programs**: every program your machine offers, with its options (temperature, spin, extra rinses, delay start…). Tap Start. Delay start can be set as a time to start or a time to be finished by. Star the ones you use most to keep them at the top. The rest are grouped (Everyday, Quick, Delicates, Care and hygiene, Rinse and spin), and **Edit list** hides the ones you never use.
 - **History**: lifetime energy, water and wash counts, how often you use each temperature, the washes you've run, and recent commands.
 - **"Wash finished" alerts**: the phone schedules an alert for the moment the wash ends, and keeps it in step as the time left changes. Nothing else needs to run anywhere.
 - **Demo machine**: try everything without an h.on account. A demo wash runs at one machine minute per second.

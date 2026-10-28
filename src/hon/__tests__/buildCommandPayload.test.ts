@@ -1,4 +1,4 @@
-import { buildCommandPayload } from '../buildCommandPayload';
+import { buildCommandPayload, expandCombinedOptions } from '../buildCommandPayload';
 import { sampleCatalogue, washerAppliance } from './honFixtures';
 
 const fixedTime = new Date('2026-10-25T09:40:12.123Z');
@@ -11,7 +11,7 @@ describe('buildCommandPayload', () => {
       commandName: 'startProgram',
       command: sampleCatalogue.startProgram!['PROGRAMS.WM_WD.COTTONS'],
       programId: 'PROGRAMS.WM_WD.COTTONS',
-      chosenOptions: { temp: '60', prewash: true, delayTime: 90 },
+      chosenOptions: { temp: '60', prewash: true, delayTime: 90, extraRinses: '2' },
       mobileId: 'test-phone',
       now: fixedTime,
     });
@@ -36,6 +36,10 @@ describe('buildCommandPayload', () => {
       prewash: '1',
       weight: '40',
       prStr: 'PROGRAMS.WM_WD.COTTONS',
+      lang: '0',
+      delayStatus: '1',
+      extraRinse1: '1',
+      extraRinse2: '1',
     });
   });
 
@@ -68,5 +72,25 @@ describe('buildCommandPayload', () => {
     });
     expect(body.parameters).toEqual({ onOffStatus: '0' });
     expect(body.programName).toBeUndefined();
+  });
+});
+
+describe('expandCombinedOptions', () => {
+  it('turns a number of extra rinses into the separate switches', () => {
+    expect(expandCombinedOptions({ extraRinses: '1' })).toEqual({
+      extraRinse1: true,
+      extraRinse2: false,
+      extraRinse3: false,
+    });
+    expect(expandCombinedOptions({ extraRinses: '0' })).toEqual({
+      extraRinse1: false,
+      extraRinse2: false,
+      extraRinse3: false,
+    });
+  });
+
+  it('switches on delayStatus only when there is a delay', () => {
+    expect(expandCombinedOptions({ delayTime: 120 })).toEqual({ delayTime: 120, delayStatus: true });
+    expect(expandCombinedOptions({ delayTime: 0 })).toEqual({ delayTime: 0 });
   });
 });

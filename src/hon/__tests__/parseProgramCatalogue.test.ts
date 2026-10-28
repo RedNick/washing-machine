@@ -36,9 +36,16 @@ describe('parsePrograms', () => {
     expect(cottons.options).toEqual([
       { kind: 'choice', key: 'temp', label: 'Temperature', choices: ['0', '20', '40', '60', '90'], defaultValue: '40', unit: '°C' },
       { kind: 'choice', key: 'spinSpeed', label: 'Spin speed', choices: ['0', '800', '1400'], defaultValue: '1400', unit: 'rpm' },
+      { kind: 'choice', key: 'extraRinses', label: 'Extra rinses', choices: ['0', '1', '2'], defaultValue: '1', unit: null },
       { kind: 'range', key: 'delayTime', label: 'Delay start', minimum: 0, maximum: 1410, step: 30, defaultValue: 0, unit: 'min' },
       { kind: 'toggle', key: 'prewash', label: 'Prewash', defaultValue: false },
     ]);
+  });
+
+  it('leaves out settings that are not wash options, like the display language', () => {
+    const optionKeys = programs[0].options.map((option) => option.key);
+    expect(optionKeys).not.toContain('lang');
+    expect(optionKeys).not.toContain('delayStatus');
   });
 });
 

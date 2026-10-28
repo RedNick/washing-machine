@@ -64,6 +64,16 @@ export interface WasherStatus {
   fetchedAt: Date;
 }
 
+/** The delay start option, in minutes from when you press Start until the wash starts. */
+export const DELAY_OPTION_KEY = 'delayTime';
+
+/**
+ * h.on has a separate on/off switch for each extra rinse (extraRinse1, 2
+ * and 3). The app shows them as one "how many" choice under this key, and
+ * turns it back into the switches when it sends the command.
+ */
+export const EXTRA_RINSES_OPTION_KEY = 'extraRinses';
+
 /** One adjustable setting of a program, e.g. temperature or extra rinse. */
 export type ProgramOption =
   | {

@@ -1,6 +1,6 @@
 import type { HonCommandCatalogue, HonCommandDefinition, HonParameterDefinition } from './honApiTypes';
 import { defaultValueOf, parseHonNumber, stripBrackets } from './honParameterValues';
-import type { ProgramOption, WasherProgram } from '../washer/washerTypes';
+import { EXTRA_RINSES_OPTION_KEY, type ProgramOption, type WasherProgram } from '../washer/washerTypes';
 
 /** Friendly names and units for the options we know about. */
 const KNOWN_OPTIONS: Record<string, { label: string; unit?: string }> = {
@@ -9,9 +9,6 @@ const KNOWN_OPTIONS: Record<string, { label: string; unit?: string }> = {
   delayTime: { label: 'Delay start', unit: 'min' },
   dirtyLevel: { label: 'Soil level' },
   prewash: { label: 'Prewash' },
-  extraRinse1: { label: 'Extra rinse' },
-  extraRinse2: { label: 'Second extra rinse' },
-  extraRinse3: { label: 'Third extra rinse' },
   anticrease: { label: 'Anti-crease' },
   nightWashStatus: { label: 'Night wash' },
   goodNight: { label: 'Good night (quiet)' },
@@ -29,6 +26,16 @@ const KNOWN_OPTIONS: Record<string, { label: string; unit?: string }> = {
   dryTime: { label: 'Drying time', unit: 'min' },
   weight: { label: 'Load', unit: 'kg' },
 };
+
+/**
+ * Parameters h.on sends with every program that aren't wash options, so the
+ * app never shows them. "lang" is the language of the machine's display;
+ * "delayStatus" is switched on for you when you choose a delay start.
+ */
+const NOT_WASH_OPTIONS = new Set(['lang', 'delayStatus', 'prCode', 'prStr', 'prPosition', 'onOffStatus', 'remoteActionable']);
+
+/** h.on's separate extra rinse switches, in order. */
+export const EXTRA_RINSE_SWITCH_KEYS = ['extraRinse1', 'extraRinse2', 'extraRinse3'];
 
 /** Program variants pyhOn hides because they can't be started normally. */
 const HIDDEN_PROGRAM_MARKERS = ['iot_recipe', 'iot_guided'];
@@ -90,17 +97,43 @@ function toProgramOption(key: string, definition: HonParameterDefinition): Progr
   return { kind: 'range', key, label, minimum, maximum, step, defaultValue: Number(defaultValue), unit };
 }
 
-/** Toggles go last so the important choices (temperature, spin) come first. */
+/**
+ * Temperature, spin and extra rinses first, then delay start, then the
+ * on/off extras.
+ */
 function optionSortOrder(option: ProgramOption): number {
   if (option.kind === 'toggle') return 2;
   return option.key === 'delayTime' ? 1 : 0;
 }
 
+/**
+ * Replaces the extraRinse1/2/3 switches with one "Extra rinses" choice:
+ * None, 1, 2 or 3 (as many as the program has switches for).
+ */
+function combineExtraRinses(options: ProgramOption[]): ProgramOption[] {
+  const rinseSwitches = options.filter((option) => EXTRA_RINSE_SWITCH_KEYS.includes(option.key));
+  if (rinseSwitches.length === 0) return options;
+
+  const switchedOnByDefault = rinseSwitches.filter((option) => option.defaultValue === true).length;
+  const extraRinses: ProgramOption = {
+    kind: 'choice',
+    key: EXTRA_RINSES_OPTION_KEY,
+    label: 'Extra rinses',
+    choices: Array.from({ length: rinseSwitches.length + 1 }, (_, count) => String(count)),
+    defaultValue: String(switchedOnByDefault),
+    unit: null,
+  };
+  const otherOptions = options.filter((option) => !EXTRA_RINSE_SWITCH_KEYS.includes(option.key));
+  return [...otherOptions, extraRinses];
+}
+
 function toWasherProgram(programId: string, definition: HonCommandDefinition): WasherProgram {
-  const options = Object.entries(definition.parameters ?? {})
-    .filter(([, parameter]) => isAdjustable(parameter))
-    .map(([key, parameter]) => toProgramOption(key, parameter))
-    .sort((first, second) => optionSortOrder(first) - optionSortOrder(second));
+  const separateOptions = Object.entries(definition.parameters ?? {})
+    .filter(([key, parameter]) => !NOT_WASH_OPTIONS.has(key) && isAdjustable(parameter))
+    .map(([key, parameter]) => toProgramOption(key, parameter));
+  const options = combineExtraRinses(separateOptions).sort(
+    (first, second) => optionSortOrder(first) - optionSortOrder(second),
+  );
 
   const estimatedTime = definition.remainingTimes?.remainingTime;
   const estimatedMinutes = estimatedTime ? parseHonNumber(defaultValueOf(estimatedTime)) || null : null;
