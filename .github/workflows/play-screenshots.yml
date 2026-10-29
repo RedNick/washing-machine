@@ -1,7 +1,9 @@
 # Takes the Google Play phone screenshots from the demo machine on an
 # emulator. Run it by hand from the Actions tab whenever the app's look
-# changes; the PNGs are attached to the run as "play-screenshots". It also
-# runs on pull requests that change the screenshot script, to check it works.
+# changes. The PNGs are attached to the run as "play-screenshots", and a
+# hand-started run also puts them on the "play-screenshots" pre-release so
+# they download as plain images. It also runs on pull requests that change
+# the screenshot script, to check it works.
 name: Play screenshots
 
 on:
@@ -17,7 +19,7 @@ on:
         default: ''
 
 permissions:
-  contents: read
+  contents: write # to update the "play-screenshots" pre-release
 
 jobs:
   screenshots:
@@ -30,7 +32,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release_tag }}
-        run: gh release download $RELEASE_TAG --pattern '*.apk' --output app.apk
+        run: |
+          gh release download $RELEASE_TAG --pattern '*.apk' --output app.apk
+          echo "Photographing $(gh release view $RELEASE_TAG --json tagName --jq .tagName)"
 
       - name: Let the emulator use hardware acceleration
         run: |
@@ -58,3 +62,17 @@ jobs:
           name: play-screenshots
           path: play-screenshots/
           retention-days: 30
+
+      # A pre-release never becomes the "latest" release, so it doesn't get
+      # in the way of the APK downloads.
+      - name: Put the screenshots on the play-screenshots pre-release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view play-screenshots > /dev/null 2>&1; then
+            gh release create play-screenshots --prerelease \
+              --title "Google Play screenshots" \
+              --notes "Phone screenshots for the Play listing, taken from the demo machine by the Play screenshots workflow."
+          fi
+          gh release upload play-screenshots play-screenshots/[0-9]-*.png --clobber
