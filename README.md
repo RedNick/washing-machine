@@ -33,6 +33,12 @@ Newer builds install over older ones and keep your sign-in. To build without pus
 
 The APK is signed with Expo's shared debug key. That's fine for your own phone, but it can't go on the Play Store.
 
+### For Google Play
+
+Once the upload key is in the repo's Actions secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`), every build also attaches `h-off-build-N-play.aab` to its release. Upload that file in the Play Console. Each build's version code is its run number, so every upload counts as newer than the last. Google Play re-signs the app for users (Play App Signing), so keep the upload key safe but it can be reset through Google if lost.
+
+The privacy policy is published from the public repo `RedNick/public` at https://rednick.github.io/public/h-off/privacy/.
+
 ### With Expo's cloud build
 
 You need a free [Expo](https://expo.dev) account.
