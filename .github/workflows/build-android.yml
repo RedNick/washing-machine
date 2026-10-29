@@ -60,9 +60,38 @@ jobs:
       - name: Generate the Android project
         run: npx expo prebuild --platform android --no-install
 
+      # Google Play needs a higher version code for every upload, so each
+      # build uses its run number.
+      - name: Number this build
+        run: sed -i "s/versionCode 1$/versionCode ${GITHUB_RUN_NUMBER}/" android/app/build.gradle
+
       - name: Build the APK
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
+
+      # The bundle uploaded to Google Play, signed with your own upload key
+      # from the repo's secrets. Skipped until those secrets are added.
+      - name: Build the Google Play bundle
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "No upload key in the repo's secrets yet, so no Play bundle this time."
+            exit 0
+          fi
+          keystore_path="$RUNNER_TEMP/upload-key.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
+          # These properties replace the build's debug signing for this command only.
+          ./gradlew bundleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$keystore_path" \
+            -Pandroid.injected.signing.store.password="$ANDROID_KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$ANDROID_KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$ANDROID_KEY_PASSWORD"
+          rm "$keystore_path"
 
       # Hands the APK to the jobs below. Only those jobs use this copy; the
       # one people download is on the Releases page.
@@ -71,6 +100,13 @@ jobs:
           name: apk
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 3
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 3
+          if-no-files-found: ignore
 
   launch-test:
     name: Open the app on an emulator
@@ -120,6 +156,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: apk
+      # Only there once the upload key is in the repo's secrets.
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: aab
 
       # GitHub zips anything downloaded from a run, so the APK goes on a
       # release instead, where it downloads as a plain .apk file.
@@ -132,14 +173,23 @@ jobs:
         run: |
           apk_name="h-off-build-${BUILD_NUMBER}.apk"
           cp app-release.apk "$apk_name"
+          release_files=("$apk_name")
+
+          # The Google Play bundle, when there is one. Upload it in the Play
+          # Console; it can't be installed directly on a phone.
+          if [ -f app-release.aab ]; then
+            aab_name="h-off-build-${BUILD_NUMBER}-play.aab"
+            cp app-release.aab "$aab_name"
+            release_files+=("$aab_name")
+          fi
 
           # Builds of other branches are marked as pre-releases, so the
           # "latest" release is always the newest build of main.
           release_kind_flag="--latest"
           if [ "$IS_MAIN" != "true" ]; then release_kind_flag="--prerelease"; fi
 
-          gh release create "build-${BUILD_NUMBER}" "$apk_name" \
+          gh release create "build-${BUILD_NUMBER}" "${release_files[@]}" \
             --target "$GITHUB_SHA" \
             --title "h.off build ${BUILD_NUMBER}" \
-            --notes "Built from ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}. Open the .apk on your phone to install or update." \
+            --notes "Built from ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}. Open the .apk on your phone to install or update. The .aab (if any) is for Google Play." \
             $release_kind_flag
