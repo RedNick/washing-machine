@@ -9,7 +9,7 @@
 set -Eeuo pipefail
 
 apk_path="$1"
-package_name="uk.ncls.h.off"
+package_name="uk.rdfn.h.off"
 output_folder="play-screenshots"
 mkdir -p "$output_folder"
 
@@ -78,8 +78,9 @@ adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi s
 adb shell am broadcast -a com.android.systemui.demo -e command network -e mobile show -e datatype none -e level 4 > /dev/null
 adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false > /dev/null
 
-# Open the app's main screen; -W waits until it has started.
-adb shell am start -W -n "$package_name/.MainActivity"
+# Open the app from its launcher entry. monkey finds the launcher activity
+# itself, so this doesn't depend on the activity's class name.
+adb shell monkey -p "$package_name" -c android.intent.category.LAUNCHER 1 > /dev/null
 # The first launch loads the app's JavaScript, so give it time.
 sleep 20
 take_screenshot 1-welcome
