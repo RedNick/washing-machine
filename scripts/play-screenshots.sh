@@ -67,7 +67,7 @@ take_screenshot() {
 
 adb install -r "$apk_path"
 # Grant the alert permission up front so its prompt doesn't cover the app.
-adb shell pm grant "$package_name" android.permission.POST_NOTIFICATIONS || true
+adb shell pm grant "$package_name" android.permission.POST_NOTIFICATIONS
 
 # Android's demo mode gives a tidy status bar: 12:00, full battery and signal.
 adb shell settings put global sysui_demo_allowed 1
