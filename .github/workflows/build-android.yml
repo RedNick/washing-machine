@@ -193,3 +193,41 @@ jobs:
             --title "h.off build ${BUILD_NUMBER}" \
             --notes "Built from ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}. Open the .apk on your phone to install or update. The .aab (if any) is for Google Play." \
             $release_kind_flag
+
+  # Sends each build of main to Google Play's closed test, so testers get it
+  # without anyone uploading by hand. Does nothing until the Play service
+  # account key is in the repo's secrets (PLAY_SERVICE_ACCOUNT_JSON).
+  upload-to-play:
+    name: Upload to the Google Play closed test
+    needs: launch-test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - name: Check the Play key is set up
+        id: play-key
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "No Play service account key in the repo's secrets yet, so nothing is uploaded."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download the Play bundle
+        if: steps.play-key.outputs.present == 'true'
+        uses: actions/download-artifact@v7
+        with:
+          name: aab
+
+      # "alpha" is the track the Play Console calls "Closed testing - Alpha".
+      - name: Upload the bundle to the closed test
+        if: steps.play-key.outputs.present == 'true'
+        uses: r0adkll/upload-google-play@v1.1.3
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: uk.rdfn.h.off
+          releaseFiles: app-release.aab
+          track: alpha
+          status: completed
