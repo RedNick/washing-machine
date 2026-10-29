@@ -13,6 +13,13 @@ package_name="uk.ncls.h.off"
 output_folder="play-screenshots"
 mkdir -p "$output_folder"
 
+# If any step fails, keep what the screen and the device log showed.
+save_failure_details() {
+  adb exec-out screencap -p > "$output_folder/failed-here.png" || true
+  adb logcat -d -v threadtime > "$output_folder/logcat.txt" || true
+}
+trap save_failure_details ERR
+
 # Prints the centre "x y" of the first on-screen element whose text or
 # accessibility label is exactly $1, or nothing if it isn't on screen.
 find_on_screen() {
@@ -71,7 +78,8 @@ adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi s
 adb shell am broadcast -a com.android.systemui.demo -e command network -e mobile show -e datatype none -e level 4 > /dev/null
 adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false > /dev/null
 
-adb shell monkey -p "$package_name" -c android.intent.category.LAUNCHER 1 > /dev/null
+# Open the app's main screen; -W waits until it has started.
+adb shell am start -W -n "$package_name/.MainActivity"
 # The first launch loads the app's JavaScript, so give it time.
 sleep 20
 take_screenshot 1-welcome
