@@ -6,7 +6,7 @@
 #
 # Saves numbered PNGs in play-screenshots/ in the current folder:
 #   1-welcome, 2-programs, 3-program-options, 4-wash-running, 5-history.
-set -euo pipefail
+set -Eeuo pipefail
 
 apk_path="$1"
 package_name="uk.ncls.h.off"
