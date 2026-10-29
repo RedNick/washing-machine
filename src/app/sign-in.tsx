@@ -79,7 +79,7 @@ export default function SignInScreen() {
       <Text style={styles.emoji} accessibilityElementsHidden>
         🧺
       </Text>
-      <Text style={[styles.title, { color: colours.text }]}>Washer</Text>
+      <Text style={[styles.title, { color: colours.text }]}>h.off</Text>
       <Text style={[styles.subtitle, { color: colours.mutedText }]}>
         A quicker way to run your h.on washing machine.
       </Text>

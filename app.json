@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Washer",
+    "name": "h.off",
     "slug": "washing-machine",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,7 +11,7 @@
     ],
     "userInterfaceStyle": "automatic",
     "android": {
-      "package": "app.washingmachine.remote",
+      "package": "uk.ncls.h.off",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

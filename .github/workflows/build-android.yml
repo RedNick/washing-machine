@@ -130,7 +130,7 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
           IS_MAIN: ${{ github.ref == 'refs/heads/main' }}
         run: |
-          apk_name="washer-build-${BUILD_NUMBER}.apk"
+          apk_name="h-off-build-${BUILD_NUMBER}.apk"
           cp app-release.apk "$apk_name"
 
           # Builds of other branches are marked as pre-releases, so the
@@ -140,6 +140,6 @@ jobs:
 
           gh release create "build-${BUILD_NUMBER}" "$apk_name" \
             --target "$GITHUB_SHA" \
-            --title "Washer build ${BUILD_NUMBER}" \
+            --title "h.off build ${BUILD_NUMBER}" \
             --notes "Built from ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}. Open the .apk on your phone to install or update." \
             $release_kind_flag
