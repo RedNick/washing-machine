@@ -9,7 +9,7 @@
 set -Eeuo pipefail
 
 apk_path="$1"
-package_name="uk.ncls.h.off"
+package_name="uk.rdfn.h.off"
 output_folder="play-screenshots"
 mkdir -p "$output_folder"
 
