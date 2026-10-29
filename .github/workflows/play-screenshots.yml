@@ -1,0 +1,60 @@
+# Takes the Google Play phone screenshots from the demo machine on an
+# emulator. Run it by hand from the Actions tab whenever the app's look
+# changes; the PNGs are attached to the run as "play-screenshots". It also
+# runs on pull requests that change the screenshot script, to check it works.
+name: Play screenshots
+
+on:
+  pull_request:
+    paths:
+      - scripts/play-screenshots.sh
+      - .github/workflows/play-screenshots.yml
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release to photograph (leave empty for the newest)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    name: Take the screenshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download the APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: gh release download $RELEASE_TAG --pattern '*.apk' --output app.apk
+
+      - name: Let the emulator use hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # The original Pixel profile has a 1080 x 1920 screen, which fits
+      # Google Play's 16:9 limit for phone screenshots.
+      - name: Take the screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          disable-animations: true
+          script: ./scripts/play-screenshots.sh app.apk
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: play-screenshots
+          path: play-screenshots/
+          retention-days: 30
