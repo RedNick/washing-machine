@@ -2,15 +2,13 @@
 # emulator. Run it by hand from the Actions tab whenever the app's look
 # changes. The PNGs are attached to the run as "play-screenshots", and a
 # hand-started run also puts them on the "play-screenshots" pre-release so
-# they download as plain images. It also runs on pull requests that change
-# the screenshot script, to check it works.
+# they download as plain images.
+#
+# It only runs by hand. It photographs the newest release, so on a pull
+# request it would test the previous build's package id, not the branch's.
 name: Play screenshots
 
 on:
-  pull_request:
-    paths:
-      - scripts/play-screenshots.sh
-      - .github/workflows/play-screenshots.yml
   workflow_dispatch:
     inputs:
       release_tag:
