@@ -39,8 +39,9 @@
         "expo-build-properties",
         {
           "android": {
-            "enableMinifyInReleaseBuilds": false,
-            "enableShrinkResourcesInReleaseBuilds": false
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class androidx.work.** { *; }\n-keep class androidx.room.** { *; }\n-keep class expo.modules.backgroundtask.** { *; }\n-keep class expo.modules.taskManager.** { *; }\n-keep class expo.modules.notifications.** { *; }\n-keep class expo.modules.securestore.** { *; }\n"
           }
         }
       ]

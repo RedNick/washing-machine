@@ -69,7 +69,7 @@ npm start          # Metro bundler for a development build
 
 On GitHub, each APK is also opened on an Android emulator (`scripts/launch-test.sh`) and is only published if the app starts without crashing. If that check fails, the run's `launch-test` download has the device log and a screenshot.
 
-Code shrinking (R8) is turned off for release builds in `app.json`. It removed classes that Android's background-task scheduler needs, which made build 4 crash on launch.
+Code shrinking (R8) is on for release builds in `app.json`. Build 4 crashed on launch because R8 removed classes that Android's background-task scheduler needs, so `extraProguardRules` in `app.json` keeps those, and `scripts/check-kept-classes.sh` fails the build if any go missing.
 
 ### Layout
 

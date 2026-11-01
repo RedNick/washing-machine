@@ -118,6 +118,11 @@ jobs:
         with:
           name: apk
 
+      # R8 renames and removes unused code; this makes sure the background
+      # "wash finished" check's classes survived it.
+      - name: Check the shrinker kept the background-work classes
+        run: ./scripts/check-kept-classes.sh app-release.apk
+
       - name: Let the emulator use hardware acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
