@@ -192,7 +192,7 @@ function CycleDetails({ status }: { status: WasherStatus }) {
       {status.currentCycleWaterLitres !== null ? (
         <DetailRow label="Water so far" value={`${status.currentCycleWaterLitres} L`} />
       ) : null}
-      <DetailRow label="Door" value={status.doorLocked ? 'Locked' : 'Unlocked'} />
+      {status.doorLocked === null ? null : <DetailRow label="Door" value={status.doorLocked ? 'Locked' : 'Unlocked'} />}
     </Card>
   );
 }

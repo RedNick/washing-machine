@@ -51,6 +51,28 @@ describe('parseWasherStatus', () => {
     ]);
   });
 
+  it('treats a program stuck on its last minute as finished', () => {
+    const context = contextWith({ machMode: '2', prPhase: '7', remainingTimeMM: '1' });
+    context.shadow!.parameters!.remainingTimeMM.lastUpdate = '2026-11-03T21:36:00Z';
+
+    const soonAfter = parseWasherStatus(context, programNames, new Date('2026-11-03T21:40:00Z'));
+    expect(soonAfter.state).toBe('running');
+
+    const longAfter = parseWasherStatus(context, programNames, new Date('2026-11-03T21:54:00Z'));
+    expect(longAfter.state).toBe('finished');
+    expect(longAfter.remainingMinutes).toBe(0);
+  });
+
+  it('keeps counting down normally when more than a minute is left', () => {
+    const context = contextWith({ machMode: '2', remainingTimeMM: '25' });
+    context.shadow!.parameters!.remainingTimeMM.lastUpdate = '2026-11-03T20:00:00Z';
+    expect(parseWasherStatus(context, programNames, new Date('2026-11-03T21:00:00Z')).state).toBe('running');
+  });
+
+  it('leaves the door unknown when the machine does not report it', () => {
+    expect(parseWasherStatus(contextWith({ machMode: '2' }), programNames).doorLocked).toBeNull();
+  });
+
   it('copes with an empty response', () => {
     const status = parseWasherStatus({}, programNames);
     expect(status.state).toBe('idle');
