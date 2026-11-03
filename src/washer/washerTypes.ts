@@ -62,6 +62,19 @@ export interface WasherStatus {
   errorCode: string | null;
   /** When this status was fetched. */
   fetchedAt: Date;
+  /**
+   * Every value the machine reported, unprocessed. Shown under "Machine
+   * readings" so a model that reports things differently can be diagnosed.
+   */
+  rawReadings: RawReading[];
+}
+
+/** One value straight from h.on, e.g. machMode = "2". */
+export interface RawReading {
+  name: string;
+  value: string;
+  /** When the machine last changed this value, if h.on says. */
+  lastUpdated: Date | null;
 }
 
 /** The delay start option, in minutes from when you press Start until the wash starts. */

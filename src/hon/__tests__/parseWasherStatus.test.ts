@@ -41,6 +41,16 @@ describe('parseWasherStatus', () => {
     expect(broken.errorCode).toBe('E21');
   });
 
+  it('lists every raw reading, sorted by name, with when it last changed', () => {
+    const context = contextWith({ prPhase: '7', machMode: '2' });
+    context.shadow!.parameters!.machMode.lastUpdate = '2026-11-03T15:58:00Z';
+    const status = parseWasherStatus(context, programNames);
+    expect(status.rawReadings).toEqual([
+      { name: 'machMode', value: '2', lastUpdated: new Date('2026-11-03T15:58:00Z') },
+      { name: 'prPhase', value: '7', lastUpdated: null },
+    ]);
+  });
+
   it('copes with an empty response', () => {
     const status = parseWasherStatus({}, programNames);
     expect(status.state).toBe('idle');

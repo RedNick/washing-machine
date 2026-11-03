@@ -1,5 +1,5 @@
 import type { HonContext } from './honApiTypes';
-import type { MachineState, WashPhase, WasherStatus } from '../washer/washerTypes';
+import type { MachineState, RawReading, WashPhase, WasherStatus } from '../washer/washerTypes';
 
 /**
  * h.on reports the machine's mode as a number ("machMode"). Meanings come
@@ -106,7 +106,24 @@ export function parseWasherStatus(
     remoteControlEnabled: readValue('remoteCtrValid') === '1',
     errorCode,
     fetchedAt,
+    rawReadings: listRawReadings(rawParameters),
   };
+}
+
+/** All of h.on's parameters as name/value pairs, sorted by name. */
+function listRawReadings(
+  rawParameters: Record<string, { parNewVal?: string; lastUpdate?: string }>,
+): RawReading[] {
+  return Object.entries(rawParameters)
+    .map(([name, parameter]) => {
+      const lastUpdated = parameter.lastUpdate ? new Date(parameter.lastUpdate) : null;
+      return {
+        name,
+        value: parameter.parNewVal ?? '',
+        lastUpdated: lastUpdated && !Number.isNaN(lastUpdated.getTime()) ? lastUpdated : null,
+      };
+    })
+    .sort((first, second) => first.name.localeCompare(second.name));
 }
 
 /** Lifetime totals the machine keeps in its live state. */

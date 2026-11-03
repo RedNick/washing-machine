@@ -142,6 +142,7 @@ export class DemoWasher implements WasherService {
       errorCode: null,
       delayMinutes: 0,
       fetchedAt,
+      rawReadings: [],
     };
 
     if (!this.cycle) {

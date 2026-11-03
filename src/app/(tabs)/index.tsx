@@ -1,11 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ActionButton } from '../../components/ActionButton';
 import { Card, DetailRow } from '../../components/Card';
 import { spacing, useThemeColours } from '../../components/theme';
-import { describePhase, describeState, formatDuration, formatFinishTime } from '../../washer/formatters';
+import { describePhase, describeState, formatDuration, formatFinishTime, formatPastDate } from '../../washer/formatters';
 import { useConnectedWasher, useWasher } from '../../washer/WasherContext';
 import type { WasherStatus } from '../../washer/washerTypes';
 
@@ -70,6 +70,7 @@ export default function NowScreen() {
             onStop={confirmStop}
           />
           <CycleDetails status={status} />
+          {washer.isDemo ? null : <MachineReadings status={status} />}
         </>
       ) : (
         <Text style={[styles.loading, { color: colours.mutedText }]}>Checking the machine…</Text>
@@ -82,6 +83,9 @@ export default function NowScreen() {
 function StatusSummary({ status }: { status: WasherStatus }) {
   const colours = useThemeColours();
   const isCounting = status.state === 'running' || status.state === 'paused';
+  // Machines (washer dryers especially) can sit on "1 min" for a while as
+  // they cool down and unlock, so don't show a countdown that isn't moving.
+  const isFinishingUp = status.state === 'running' && status.remainingMinutes <= 1;
   const phaseLabel = describePhase(status.phase);
 
   return (
@@ -93,7 +97,14 @@ function StatusSummary({ status }: { status: WasherStatus }) {
         <Text style={[styles.programName, { color: colours.text }]}>{status.programName}</Text>
       ) : null}
 
-      {isCounting ? (
+      {isFinishingUp ? (
+        <View style={styles.timeBlock}>
+          <Text style={[styles.timeLeft, { color: colours.accent }]}>Almost done</Text>
+          <Text style={[styles.timeCaption, { color: colours.mutedText }]}>
+            The machine is finishing the program. It can take a few minutes before it says it's done.
+          </Text>
+        </View>
+      ) : isCounting ? (
         <View style={styles.timeBlock}>
           <Text style={[styles.timeLeft, { color: colours.accent }]}>{formatDuration(status.remainingMinutes)}</Text>
           <Text style={[styles.timeCaption, { color: colours.mutedText }]}>
@@ -183,6 +194,35 @@ function CycleDetails({ status }: { status: WasherStatus }) {
   );
 }
 
+/**
+ * Everything the machine reported, unprocessed, behind a "Show" button.
+ * Lets a screenshot show what this particular model actually sends.
+ */
+function MachineReadings({ status }: { status: WasherStatus }) {
+  const colours = useThemeColours();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <Card title="Machine readings">
+      <DetailRow label="Checked" value={formatPastDate(status.fetchedAt)} />
+      <Pressable accessibilityRole="button" onPress={() => setIsExpanded((wasExpanded) => !wasExpanded)}>
+        <Text style={[styles.readingsToggle, { color: colours.accent }]}>
+          {isExpanded ? 'Hide raw readings' : `Show raw readings (${status.rawReadings.length})`}
+        </Text>
+      </Pressable>
+      {isExpanded
+        ? status.rawReadings.map((reading) => (
+            <DetailRow
+              key={reading.name}
+              label={reading.name}
+              value={reading.lastUpdated ? `${reading.value}  ·  ${formatPastDate(reading.lastUpdated)}` : reading.value}
+            />
+          ))
+        : null}
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
   content: { padding: spacing.medium },
   machineName: { fontSize: 15, marginBottom: spacing.small },
@@ -195,4 +235,5 @@ const styles = StyleSheet.create({
   timeCaption: { fontSize: 16, marginTop: 4 },
   phase: { fontSize: 15, marginTop: spacing.small, fontStyle: 'italic' },
   buttonRow: { flexDirection: 'row', gap: spacing.medium, marginBottom: spacing.medium },
+  readingsToggle: { fontSize: 15, fontWeight: '600', marginTop: spacing.small },
 });

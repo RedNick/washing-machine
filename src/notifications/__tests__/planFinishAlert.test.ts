@@ -19,6 +19,7 @@ function statusWith(overrides: Partial<WasherStatus>): WasherStatus {
     remoteControlEnabled: true,
     errorCode: null,
     fetchedAt: new Date(NOW),
+    rawReadings: [],
     ...overrides,
   };
 }
