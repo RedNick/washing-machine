@@ -1,5 +1,11 @@
 import type { WasherProgram } from '../../washer/washerTypes';
-import { NO_PROGRAM_LIST_CHOICES, organisePrograms, toggleFavourite, toggleHidden } from '../organisePrograms';
+import {
+  NO_PROGRAM_LIST_CHOICES,
+  organisePrograms,
+  programMatchesSearch,
+  toggleFavourite,
+  toggleHidden,
+} from '../organisePrograms';
 import { groupForProgram } from '../programGroups';
 
 /** A program with just enough filled in for the list. */
@@ -34,6 +40,10 @@ describe('groupForProgram', () => {
     [mystery, 'other'],
     [makeProgram('IOT_WASH_RAPID_COTTON', 'Rapid cotton'), 'quick'],
     [makeProgram('SECOND_HAND', 'Second hand'), 'other'],
+    [makeProgram('WASH_DRY_COTTON', 'Wash dry cotton'), 'washAndDry'],
+    [makeProgram('QUICK_WASH_AND_DRY_45', 'Quick wash and dry 45'), 'washAndDry'],
+    [makeProgram('DRY_SYNTHETIC', 'Dry synthetic'), 'dryOnly'],
+    [makeProgram('WOOL_DRY', 'Wool dry'), 'dryOnly'],
   ])('%#: puts %s in %s', (program, expectedGroup) => {
     expect(groupForProgram(program)).toBe(expectedGroup);
   });
@@ -93,5 +103,23 @@ describe('organisePrograms', () => {
     const hiddenTwice = toggleHidden(toggleHidden(NO_PROGRAM_LIST_CHOICES, wool.id), wool.id);
     expect(starredTwice.favouriteIds).toEqual([]);
     expect(hiddenTwice.hiddenIds).toEqual([]);
+  });
+});
+
+describe('program search', () => {
+  it('matches the start of words in the name, in any order', () => {
+    expect(programMatchesSearch(eco, 'eco')).toBe(true);
+    expect(programMatchesSearch(eco, '40 ec')).toBe(true);
+    expect(programMatchesSearch(cottons, 'tons')).toBe(false);
+    expect(programMatchesSearch(cottons, '')).toBe(true);
+  });
+
+  it('lists only the matches, in one section, leaving out hidden ones', () => {
+    const choices = { favouriteIds: [cottons.id], hiddenIds: [wool.id] };
+    const { sections } = organisePrograms(allPrograms, choices, { includeHidden: false, searchText: 'co' });
+    expect(sections.map((section) => [section.title, section.data.map((program) => program.displayName)])).toEqual([
+      ['Matching programs', ['Cottons']],
+    ]);
+    expect(organisePrograms(allPrograms, choices, { includeHidden: false, searchText: 'wool' }).sections).toEqual([]);
   });
 });

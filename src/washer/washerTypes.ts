@@ -87,6 +87,12 @@ export const DELAY_OPTION_KEY = 'delayTime';
  */
 export const EXTRA_RINSES_OPTION_KEY = 'extraRinses';
 
+/**
+ * Washer dryers: one "Drying" choice that stands for h.on's dryLevel and
+ * dryTime settings, which can't both be used at once. See dryingOption.ts.
+ */
+export const DRYING_OPTION_KEY = 'drying';
+
 /** One adjustable setting of a program, e.g. temperature or extra rinse. */
 export type ProgramOption =
   | {

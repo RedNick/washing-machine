@@ -69,6 +69,24 @@ const DEMO_PROGRAMS: WasherProgram[] = [
     ],
   },
   {
+    id: 'PROGRAMS.WM_WD.WASH_DRY_MIX',
+    displayName: 'Wash and dry mix',
+    description: 'Washes, then dries by level or for a set time.',
+    estimatedMinutes: 180,
+    isBuiltIn: true,
+    options: [
+      { kind: 'choice', key: 'temp', label: 'Temperature', choices: ['20', '30', '40'], defaultValue: '40', unit: '°C' },
+      {
+        kind: 'choice',
+        key: 'drying',
+        label: 'Drying',
+        choices: ['none', 'level:1', 'level:2', 'level:3', 'time:1', 'time:2', 'time:3', 'time:4'],
+        defaultValue: 'level:2',
+        unit: null,
+      },
+    ],
+  },
+  {
     id: 'PROGRAMS.WM_WD.RINSE',
     displayName: 'Rinse',
     description: 'Rinse and spin only.',

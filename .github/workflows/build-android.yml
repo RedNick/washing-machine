@@ -41,6 +41,9 @@ jobs:
     name: Build APK
     needs: check
     runs-on: ubuntu-latest
+    env:
+      # Built into the app's JavaScript so the Now screen can show the build number.
+      EXPO_PUBLIC_BUILD_NUMBER: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
