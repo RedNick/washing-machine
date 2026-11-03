@@ -6,6 +6,7 @@ import { ActionButton } from '../../components/ActionButton';
 import { Card, DetailRow } from '../../components/Card';
 import { spacing, useThemeColours } from '../../components/theme';
 import { describePhase, describeState, formatDuration, formatFinishTime, formatPastDate } from '../../washer/formatters';
+import { describeAppVersion } from '../../washer/appVersion';
 import { useConnectedWasher, useWasher } from '../../washer/WasherContext';
 import type { WasherStatus } from '../../washer/washerTypes';
 
@@ -75,6 +76,8 @@ export default function NowScreen() {
       ) : (
         <Text style={[styles.loading, { color: colours.mutedText }]}>Checking the machine…</Text>
       )}
+
+      <Text style={[styles.appVersion, { color: colours.mutedText }]}>{describeAppVersion()}</Text>
     </ScrollView>
   );
 }
@@ -235,5 +238,6 @@ const styles = StyleSheet.create({
   timeCaption: { fontSize: 16, marginTop: 4 },
   phase: { fontSize: 15, marginTop: spacing.small, fontStyle: 'italic' },
   buttonRow: { flexDirection: 'row', gap: spacing.medium, marginBottom: spacing.medium },
+  appVersion: { fontSize: 13, textAlign: 'center', marginTop: spacing.medium },
   readingsToggle: { fontSize: 15, fontWeight: '600', marginTop: spacing.small },
 });

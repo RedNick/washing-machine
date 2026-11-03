@@ -8,7 +8,15 @@ import type { WasherProgram } from '../washer/washerTypes';
  * "Other programs".
  */
 
-export type ProgramGroupId = 'everyday' | 'quick' | 'delicates' | 'care' | 'rinseAndSpin' | 'other';
+export type ProgramGroupId =
+  | 'everyday'
+  | 'quick'
+  | 'washAndDry'
+  | 'dryOnly'
+  | 'delicates'
+  | 'care'
+  | 'rinseAndSpin'
+  | 'other';
 
 interface ProgramGroup {
   id: ProgramGroupId;
@@ -23,9 +31,16 @@ interface ProgramGroup {
 
 /**
  * Checked in this order and the first match wins, so the more specific
- * groups come first: "Quick wash cotton" is quick, "Wool rinse" is delicate.
+ * groups come first: "Quick wash cotton" is quick, "Wool rinse" is delicate,
+ * and anything that dries (washer dryers) goes under the drying groups.
  */
 const GROUPS_IN_MATCH_ORDER: ProgramGroup[] = [
+  {
+    id: 'washAndDry',
+    title: 'Wash and dry',
+    keywords: ['wash dry', 'wash and dry', 'wash & dry', 'wash&dry', 'wash+dry', 'washdry', 'wash n dry', 'non stop', 'nonstop', 'one cycle'],
+  },
+  { id: 'dryOnly', title: 'Drying only', keywords: ['dry', 'drying', 'tumble'] },
   { id: 'rinseAndSpin', title: 'Rinse and spin', keywords: ['rinse', 'spin', 'drain'] },
   {
     id: 'quick',
@@ -52,7 +67,16 @@ const GROUPS_IN_MATCH_ORDER: ProgramGroup[] = [
 const OTHER_GROUP: ProgramGroup = { id: 'other', title: 'Other programs', keywords: [] };
 
 /** The order the groups appear in on screen. */
-export const GROUP_DISPLAY_ORDER: ProgramGroupId[] = ['everyday', 'quick', 'delicates', 'care', 'rinseAndSpin', 'other'];
+export const GROUP_DISPLAY_ORDER: ProgramGroupId[] = [
+  'everyday',
+  'quick',
+  'washAndDry',
+  'dryOnly',
+  'delicates',
+  'care',
+  'rinseAndSpin',
+  'other',
+];
 
 export function groupTitle(groupId: ProgramGroupId): string {
   return [...GROUPS_IN_MATCH_ORDER, OTHER_GROUP].find((group) => group.id === groupId)?.title ?? OTHER_GROUP.title;

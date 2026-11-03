@@ -1,4 +1,5 @@
-import type { MachineState, WashPhase } from './washerTypes';
+import { describeDryingChoice } from '../hon/dryingOption';
+import { DRYING_OPTION_KEY, type MachineState, type WashPhase } from './washerTypes';
 
 /** 83 → "1 h 23 min", 45 → "45 min", 0 → "0 min". */
 export function formatDuration(totalMinutes: number): string {
@@ -77,5 +78,9 @@ export function formatOptionValue(key: string, value: string | number, unit: str
   if (key === 'spinSpeed' && Number(value) === 0) return 'No spin';
   if (key === 'delayTime') return Number(value) === 0 ? 'Off' : formatDuration(Number(value));
   if (key === 'extraRinses') return Number(value) === 0 ? 'None' : String(value);
+  if (key === DRYING_OPTION_KEY) {
+    const drying = describeDryingChoice(String(value));
+    return 'label' in drying ? drying.label : formatDuration(drying.minutes);
+  }
   return unit ? `${value} ${unit}` : String(value);
 }

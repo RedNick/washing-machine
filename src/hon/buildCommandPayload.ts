@@ -1,7 +1,8 @@
 import type { HonAppliance, HonCommandDefinition, HonParameterDefinition } from './honApiTypes';
 import { HON_APP_VERSION, HON_DEVICE_MODEL, HON_OS_NAME, HON_OS_VERSION } from './honConstants';
 import { defaultValueOf } from './honParameterValues';
-import { DELAY_OPTION_KEY, EXTRA_RINSES_OPTION_KEY, type ChosenOptions } from '../washer/washerTypes';
+import { DELAY_OPTION_KEY, DRYING_OPTION_KEY, EXTRA_RINSES_OPTION_KEY, type ChosenOptions } from '../washer/washerTypes';
+import { expandDryingChoice } from './dryingOption';
 import { EXTRA_RINSE_SWITCH_KEYS } from './parseProgramCatalogue';
 
 /** The body of POST /commands/v1/send, as the h.on app sends it. */
@@ -34,10 +35,16 @@ function chosenValueToString(value: string | number | boolean): string {
 /**
  * Turns the app's combined options back into h.on's own parameters:
  * "Extra rinses: 2" switches on extraRinse1 and extraRinse2, and a delay
- * start also switches on delayStatus (ignored by machines without it).
+ * start also switches on delayStatus (ignored by machines without it), and
+ * "Drying: Cupboard dry" becomes dryLevel 2 with dryTime 0.
  */
 export function expandCombinedOptions(chosenOptions: ChosenOptions): ChosenOptions {
-  const { [EXTRA_RINSES_OPTION_KEY]: extraRinseCount, ...expanded } = chosenOptions;
+  const {
+    [EXTRA_RINSES_OPTION_KEY]: extraRinseCount,
+    [DRYING_OPTION_KEY]: dryingChoice,
+    ...expanded
+  } = chosenOptions;
+  if (dryingChoice !== undefined) Object.assign(expanded, expandDryingChoice(String(dryingChoice)));
   if (extraRinseCount !== undefined) {
     EXTRA_RINSE_SWITCH_KEYS.forEach((switchKey, index) => {
       expanded[switchKey] = index < Number(extraRinseCount);

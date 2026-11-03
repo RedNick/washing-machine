@@ -26,16 +26,29 @@ describe('Programs screen', () => {
   it('lets you star and hide programs', async () => {
     await renderRouter({ _layout: DemoMachineLayout, index: ProgramsScreen }, { initialUrl: '/' });
 
-    // Grouped, with no favourites yet.
-    expect(await screen.findByText('Everyday')).toBeTruthy();
-    expect(screen.queryByText('Favourites')).toBeNull();
+    // Grouped, with no favourites yet. Each group has a heading and a jump button.
+    expect(await screen.findByLabelText('Jump to Everyday')).toBeTruthy();
+    expect(screen.queryByLabelText('Jump to Favourites')).toBeNull();
 
     await fireEvent.press(screen.getByLabelText('Add Care 14 to favourites'));
-    expect(await screen.findByText('Favourites')).toBeTruthy();
+    expect(await screen.findByLabelText('Jump to Favourites')).toBeTruthy();
 
     await fireEvent.press(screen.getByText('Edit list'));
     await fireEvent.press((await screen.findAllByText('Hide'))[0]);
     await fireEvent.press(await screen.findByText('Done'));
     expect(await screen.findByText('1 hidden program · Show')).toBeTruthy();
+  });
+
+  it('finds programs by name', async () => {
+    await renderRouter({ _layout: DemoMachineLayout, index: ProgramsScreen }, { initialUrl: '/' });
+
+    await fireEvent.changeText(await screen.findByLabelText('Search programs'), 'eco');
+    expect(await screen.findByText('Matching programs')).toBeTruthy();
+    expect(screen.getByText('Eco 40-60')).toBeTruthy();
+    expect(screen.queryByText('Cottons')).toBeNull();
+    expect(screen.queryByLabelText('Jump to Everyday')).toBeNull();
+
+    await fireEvent.changeText(screen.getByLabelText('Search programs'), 'zzz');
+    expect(await screen.findByText('No programs match "zzz".')).toBeTruthy();
   });
 });

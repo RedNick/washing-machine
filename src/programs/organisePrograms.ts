@@ -22,16 +22,35 @@ export interface OrganisedPrograms {
 }
 
 /**
+ * True when every word typed appears at the start of a word in the
+ * program's name or description, so "cot 40" finds "Cottons 40 °C".
+ */
+export function programMatchesSearch(program: WasherProgram, searchText: string): boolean {
+  const typedWords = searchText.toLowerCase().split(/\s+/).filter(Boolean);
+  if (typedWords.length === 0) return true;
+  const programWords = `${program.displayName} ${program.description}`.toLowerCase().split(/[^a-z0-9]+/);
+  return typedWords.every((typedWord) => programWords.some((programWord) => programWord.startsWith(typedWord)));
+}
+
+/**
  * Builds the Programs screen: favourites first, then each group. Hidden
  * programs are left out, unless you're editing the list, when they get a
  * "Hidden" section of their own at the end so you can bring them back.
+ * With search text, only the matching programs are listed, in one section.
  */
 export function organisePrograms(
   programs: WasherProgram[],
   choices: ProgramListChoices,
-  { includeHidden }: { includeHidden: boolean },
+  { includeHidden, searchText = '' }: { includeHidden: boolean; searchText?: string },
 ): OrganisedPrograms {
   const hiddenIds = new Set(choices.hiddenIds);
+  if (searchText.trim()) {
+    const matches = programs.filter(
+      (program) => (includeHidden || !hiddenIds.has(program.id)) && programMatchesSearch(program, searchText),
+    );
+    const sections = matches.length > 0 ? [{ key: 'results', title: 'Matching programs', data: matches }] : [];
+    return { sections, hiddenCount: programs.filter((program) => hiddenIds.has(program.id)).length };
+  }
   const favouriteIds = new Set(choices.favouriteIds);
   const programById = new Map(programs.map((program) => [program.id, program]));
 

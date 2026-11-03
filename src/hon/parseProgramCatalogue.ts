@@ -1,4 +1,5 @@
 import type { HonCommandCatalogue, HonCommandDefinition, HonParameterDefinition } from './honApiTypes';
+import { combineDryingOptions } from './dryingOption';
 import { defaultValueOf, parseHonNumber, stripBrackets } from './honParameterValues';
 import { EXTRA_RINSES_OPTION_KEY, type ProgramOption, type WasherProgram } from '../washer/washerTypes';
 
@@ -22,8 +23,6 @@ const KNOWN_OPTIONS: Record<string, { label: string; unit?: string }> = {
   autoSoftenerStatus: { label: 'Auto-dose softener' },
   antiAllergyStatus: { label: 'Anti-allergy' },
   highWaterLevelStatus: { label: 'Extra water' },
-  dryLevel: { label: 'Drying level' },
-  dryTime: { label: 'Drying time', unit: 'min' },
   weight: { label: 'Load', unit: 'kg' },
 };
 
@@ -131,7 +130,7 @@ function toWasherProgram(programId: string, definition: HonCommandDefinition): W
   const separateOptions = Object.entries(definition.parameters ?? {})
     .filter(([key, parameter]) => !NOT_WASH_OPTIONS.has(key) && isAdjustable(parameter))
     .map(([key, parameter]) => toProgramOption(key, parameter));
-  const options = combineExtraRinses(separateOptions).sort(
+  const options = combineDryingOptions(combineExtraRinses(separateOptions)).sort(
     (first, second) => optionSortOrder(first) - optionSortOrder(second),
   );
 
