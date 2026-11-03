@@ -8,7 +8,7 @@ import { spacing, useThemeColours } from '../../components/theme';
 import { describePhase, describeState, formatDuration, formatFinishTime, formatPastDate } from '../../washer/formatters';
 import { describeAppVersion } from '../../washer/appVersion';
 import { useConnectedWasher, useWasher } from '../../washer/WasherContext';
-import type { WasherStatus } from '../../washer/washerTypes';
+import type { DiagnosticBlock, WasherService, WasherStatus } from '../../washer/washerTypes';
 
 /** The home screen: what the machine is doing, and buttons to control it. */
 export default function NowScreen() {
@@ -71,7 +71,7 @@ export default function NowScreen() {
             onStop={confirmStop}
           />
           <CycleDetails status={status} />
-          {washer.isDemo ? null : <MachineReadings status={status} />}
+          {washer.isDemo ? null : <MachineReadings status={status} washer={washer} />}
         </>
       ) : (
         <Text style={[styles.loading, { color: colours.mutedText }]}>Checking the machine…</Text>
@@ -201,9 +201,26 @@ function CycleDetails({ status }: { status: WasherStatus }) {
  * Everything the machine reported, unprocessed, behind a "Show" button.
  * Lets a screenshot show what this particular model actually sends.
  */
-function MachineReadings({ status }: { status: WasherStatus }) {
+function MachineReadings({ status, washer }: { status: WasherStatus; washer: WasherService }) {
   const colours = useThemeColours();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<DiagnosticBlock[] | null>(null);
+  const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
+  const [isLoadingDiagnostics, setIsLoadingDiagnostics] = useState(false);
+
+  /** Fetches h.on's activity and history, which aren't part of the regular status. */
+  const loadDiagnostics = async () => {
+    if (!washer.getDiagnostics) return;
+    setIsLoadingDiagnostics(true);
+    setDiagnosticsError(null);
+    try {
+      setDiagnostics(await washer.getDiagnostics());
+    } catch (error) {
+      setDiagnosticsError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsLoadingDiagnostics(false);
+    }
+  };
 
   return (
     <Card title="Machine readings">
@@ -220,6 +237,24 @@ function MachineReadings({ status }: { status: WasherStatus }) {
               label={reading.name}
               value={reading.lastUpdated ? `${reading.value}  ·  ${formatPastDate(reading.lastUpdated)}` : reading.value}
             />
+          ))
+        : null}
+      {isExpanded && washer.getDiagnostics ? (
+        <Pressable accessibilityRole="button" onPress={() => void loadDiagnostics()} disabled={isLoadingDiagnostics}>
+          <Text style={[styles.readingsToggle, { color: colours.accent }]}>
+            {isLoadingDiagnostics ? 'Loading activity and history…' : diagnostics ? 'Reload activity and history' : 'Load activity and history'}
+          </Text>
+        </Pressable>
+      ) : null}
+      {isExpanded && diagnosticsError ? <Text style={{ color: colours.danger }}>{diagnosticsError}</Text> : null}
+      {isExpanded && diagnostics
+        ? diagnostics.map((block) => (
+            <View key={block.title} style={styles.diagnosticBlock}>
+              <Text style={[styles.diagnosticTitle, { color: colours.mutedText }]}>{block.title}</Text>
+              <Text selectable style={[styles.diagnosticJson, { color: colours.text }]}>
+                {block.json}
+              </Text>
+            </View>
           ))
         : null}
     </Card>
@@ -239,5 +274,8 @@ const styles = StyleSheet.create({
   phase: { fontSize: 15, marginTop: spacing.small, fontStyle: 'italic' },
   buttonRow: { flexDirection: 'row', gap: spacing.medium, marginBottom: spacing.medium },
   appVersion: { fontSize: 13, textAlign: 'center', marginTop: spacing.medium },
+  diagnosticBlock: { marginTop: spacing.medium },
+  diagnosticTitle: { fontSize: 13, fontWeight: '600', marginBottom: 4 },
+  diagnosticJson: { fontFamily: 'monospace', fontSize: 12 },
   readingsToggle: { fontSize: 15, fontWeight: '600', marginTop: spacing.small },
 });
