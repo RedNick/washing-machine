@@ -166,11 +166,14 @@ export class HonCloudWasher implements WasherService {
       ),
     ]);
     const history = historyResponse.payload?.history ?? [];
+    const activity = { activity: context.activity, lastConnEvent: context.lastConnEvent };
+    const recentHistory = history.slice(0, HISTORY_ENTRIES_TO_SHOW);
     return [
-      { title: 'Activity', json: toReadableJson({ activity: context.activity, lastConnEvent: context.lastConnEvent }) },
+      { title: 'Activity', json: toReadableJson(activity), data: activity },
       {
-        title: `History (first ${Math.min(history.length, HISTORY_ENTRIES_TO_SHOW)} of ${history.length})`,
-        json: toReadableJson(history.slice(0, HISTORY_ENTRIES_TO_SHOW)),
+        title: `History (first ${recentHistory.length} of ${history.length})`,
+        json: toReadableJson(recentHistory),
+        data: recentHistory,
       },
     ];
   }

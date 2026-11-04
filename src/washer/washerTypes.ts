@@ -184,7 +184,10 @@ export interface WasherService {
 /** A titled block of raw JSON from h.on. */
 export interface DiagnosticBlock {
   title: string;
+  /** Pretty-printed for the screen, and cut short if it's long. */
   json: string;
+  /** The same data uncut, for "Send a report" (which removes private details first). */
+  data: unknown;
 }
 
 /** Thrown when the machine refuses or cannot receive a command. */

@@ -64,6 +64,15 @@ function RootNavigator() {
             headerTintColor: colours.text,
           }}
         />
+        <Stack.Screen
+          name="settings"
+          options={{
+            headerShown: true,
+            title: 'Settings',
+            headerStyle: { backgroundColor: colours.card },
+            headerTintColor: colours.text,
+          }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={!isConnected}>
         <Stack.Screen name="sign-in" />
