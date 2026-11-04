@@ -10,6 +10,7 @@ It talks to the same Haier cloud as h.on, but does far less, so it opens quickly
 - **Programs**: every program your machine offers, with its options (temperature, spin, extra rinses, delay start…). Tap Start. Delay start can be set as a time to start or a time to be finished by. Star the ones you use most to keep them at the top. The rest are grouped (Everyday, Quick, Delicates, Care and hygiene, Rinse and spin), and **Edit list** hides the ones you never use.
 - **History**: lifetime energy, water and wash counts, how often you use each temperature, the washes you've run, and recent commands.
 - **"Wash finished" alerts**: the phone schedules an alert for the moment the wash ends, and keeps it in step as the time left changes. Nothing else needs to run anywhere.
+- **Settings and reports** (from History): **Send a report** makes a JSON file of what the app sees (model, readings, recent h.on activity, program list) with sign-in details, the machine's name, MAC address and serial number removed, and opens the share sheet so you choose where it goes. Automatic crash and wash reports are off by default and can't be switched on until those services are set up.
 - **Demo machine**: try everything without an h.on account. A demo wash runs at one machine minute per second.
 
 ## How sign-in works
@@ -80,7 +81,8 @@ Code shrinking (R8) is on for release builds in `app.json`. Build 4 crashed on l
 | `src/washer/` | The app's own washing-machine types, the demo machine, shared state (`WasherContext`) and formatting helpers. |
 | `src/notifications/` | The "wash finished" alert. `planFinishAlert.ts` decides what to do and `finishAlertScheduler.ts` does it. |
 | `src/background/` | The check Android runs about every 15 minutes while the app is closed. |
-| `src/storage/` | Secure token storage and the on-phone log of finished washes. |
+| `src/storage/` | Secure token storage, the on-phone log of finished washes, and the report settings. |
+| `src/diagnostics/` | "Send a report": building the report, removing private details, and sharing the file. |
 | `src/programs/` | Organising the program list: groups, favourites and hidden programs (saved on the phone). |
 | `src/components/` | Small shared UI pieces and colours. |
 

@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -17,7 +17,7 @@ const COMMAND_LABELS: Record<string, string> = {
   resumeProgram: 'Resumed',
 };
 
-/** Energy and water use, past washes, and the sign-out button. */
+/** Energy and water use, past washes, and the Settings and sign-out buttons. */
 export default function HistoryScreen() {
   const { washer, machineInfo } = useConnectedWasher();
   const { signOut } = useWasher();
@@ -133,6 +133,9 @@ export default function HistoryScreen() {
         {machineInfo.brand ? <DetailRow label="Brand" value={machineInfo.brand} /> : null}
       </Card>
 
+      <View style={styles.settingsButtonRow}>
+        <ActionButton label="Settings and reports" look="secondary" onPress={() => router.push('/settings')} />
+      </View>
       <View style={styles.buttonRow}>
         <ActionButton
           label={washer.isDemo ? 'Leave the demo' : 'Sign out'}
@@ -155,7 +158,10 @@ function TemperatureBars({ bands }: { bands: UsageSummary['temperatureBands'] })
           <Text style={[styles.barLabel, { color: colours.text }]}>{band.label}</Text>
           <View style={[styles.barTrack, { backgroundColor: colours.border }]}>
             <View
-              style={[styles.barFill, { backgroundColor: colours.accent, width: `${(band.count / highestCount) * 100}%` }]}
+              style={[
+                styles.barFill,
+                { backgroundColor: colours.accent, width: `${(band.count / highestCount) * 100}%` },
+              ]}
             />
           </View>
           <Text style={[styles.barCount, { color: colours.mutedText }]}>{band.count}</Text>
@@ -176,5 +182,6 @@ const styles = StyleSheet.create({
   barTrack: { flex: 1, height: 10, borderRadius: 5, overflow: 'hidden', marginHorizontal: spacing.small },
   barFill: { height: 10, borderRadius: 5 },
   barCount: { width: 32, textAlign: 'right' },
+  settingsButtonRow: { flexDirection: 'row', marginBottom: spacing.medium },
   buttonRow: { flexDirection: 'row', marginBottom: spacing.large },
 });
