@@ -52,7 +52,11 @@ export interface WasherStatus {
   /** Energy and water used by the current program so far. */
   currentCycleEnergyKwh: number | null;
   currentCycleWaterLitres: number | null;
-  doorLocked: boolean;
+  /**
+   * Null when the machine doesn't report its door lock at all (Nicolas's
+   * washer dryer sends no door values), so the app doesn't show a guess.
+   */
+  doorLocked: boolean | null;
   /**
    * The machine only accepts commands from the app when "remote control"
    * is switched on at the machine itself.
@@ -170,6 +174,17 @@ export interface WasherService {
   stop(): Promise<void>;
   getUsageSummary(): Promise<UsageSummary>;
   getRecentCommands(): Promise<PastCommand[]>;
+  /**
+   * Raw h.on data that the app doesn't use yet, shown under "Machine
+   * readings" to look for a reliable "wash finished" signal. Real machines only.
+   */
+  getDiagnostics?(): Promise<DiagnosticBlock[]>;
+}
+
+/** A titled block of raw JSON from h.on. */
+export interface DiagnosticBlock {
+  title: string;
+  json: string;
 }
 
 /** Thrown when the machine refuses or cannot receive a command. */

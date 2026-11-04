@@ -16,6 +16,7 @@ import {
   WasherCommandError,
   type ChosenOptions,
   type MachineInfo,
+  type DiagnosticBlock,
   type PastCommand,
   type UsageSummary,
   type WasherProgram,
@@ -57,11 +58,10 @@ export class HonCloudWasher implements WasherService {
 
   /** Finds the washing machine on the signed-in account. */
   static async connect(session: HonSession, fetchFunction: FetchFunction = fetch): Promise<HonCloudWasher> {
-    const response = await sendHonApiRequest<{ payload?: { appliances?: HonAppliance[] } }>(
-      session,
-      fetchFunction,
-      { method: 'GET', path: '/commands/v1/appliance' },
-    );
+    const response = await sendHonApiRequest<{ payload?: { appliances?: HonAppliance[] } }>(session, fetchFunction, {
+      method: 'GET',
+      path: '/commands/v1/appliance',
+    });
     const washer = (response.payload?.appliances ?? []).find((appliance) =>
       WASHER_TYPE_NAMES.includes(appliance.applianceTypeName),
     );
@@ -152,9 +152,30 @@ export class HonCloudWasher implements WasherService {
     });
   }
 
-  private async sendSimpleCommand(
-    commandName: 'pauseProgram' | 'resumeProgram' | 'stopProgram',
-  ): Promise<void> {
+  /**
+   * The parts of h.on's answers the app doesn't read yet: the "activity"
+   * and connection events from the live status, and the newest entries of
+   * the machine's history, exactly as h.on sends them.
+   */
+  async getDiagnostics(): Promise<DiagnosticBlock[]> {
+    const [context, historyResponse] = await Promise.all([
+      this.loadContext(),
+      this.requestJson<{ payload?: { history?: unknown[] } }>(
+        'GET',
+        `/commands/v1/appliance/${this.appliance.macAddress}/history`,
+      ),
+    ]);
+    const history = historyResponse.payload?.history ?? [];
+    return [
+      { title: 'Activity', json: toReadableJson({ activity: context.activity, lastConnEvent: context.lastConnEvent }) },
+      {
+        title: `History (first ${Math.min(history.length, HISTORY_ENTRIES_TO_SHOW)} of ${history.length})`,
+        json: toReadableJson(history.slice(0, HISTORY_ENTRIES_TO_SHOW)),
+      },
+    ];
+  }
+
+  private async sendSimpleCommand(commandName: 'pauseProgram' | 'resumeProgram' | 'stopProgram'): Promise<void> {
     const catalogue = await this.loadCatalogue();
     const command = catalogue[commandName];
     if (!command) throw new WasherCommandError(`Your machine doesn't support "${commandName}".`);
@@ -241,4 +262,16 @@ export class HonCloudWasher implements WasherService {
   ): Promise<ResponseBody> {
     return sendHonApiRequest<ResponseBody>(this.session, this.fetchFunction, { method, path, query, body });
   }
+}
+
+/** How many history entries the diagnostics show; enough to see the latest wash. */
+const HISTORY_ENTRIES_TO_SHOW = 5;
+
+/** Longest JSON shown per block, so a huge answer can't swamp the screen. */
+const MAX_DIAGNOSTIC_CHARACTERS = 6000;
+
+/** Indented JSON, cut short if it's very long. */
+function toReadableJson(value: unknown): string {
+  const json = JSON.stringify(value ?? null, null, 1);
+  return json.length > MAX_DIAGNOSTIC_CHARACTERS ? `${json.slice(0, MAX_DIAGNOSTIC_CHARACTERS)}\n… (cut short)` : json;
 }

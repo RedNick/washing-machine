@@ -47,6 +47,14 @@ const WASH_PHASE_BY_CODE: Record<number, WashPhase> = {
   27: 'washing',
 };
 
+/**
+ * Some machines (Nicolas's washer dryer) never report the end of a program:
+ * h.on keeps saying "running, 1 minute left" long after the wash is done. If
+ * the time left has sat at 1 minute or less for this long, treat the program
+ * as finished.
+ */
+export const STUCK_AT_END_MINUTES = 10;
+
 /** Reads a number from h.on's string values, or null if it isn't one. */
 function toNumberOrNull(rawValue: string | undefined): number | null {
   if (rawValue === undefined || rawValue === '') return null;
@@ -70,9 +78,12 @@ export function parseWasherStatus(
 
   const isConnected = context.lastConnEvent?.category !== 'DISCONNECTED';
   const machineMode = toNumberOrNull(readValue('machMode')) ?? 0;
-  const state: MachineState = isConnected
+  const reportedState: MachineState = isConnected
     ? (MACHINE_STATE_BY_MODE[machineMode] ?? 'idle')
     : 'offline';
+  const state: MachineState = hasStalledAtTheEnd(reportedState, rawParameters.remainingTimeMM, fetchedAt)
+    ? 'finished'
+    : reportedState;
 
   const phaseCode = toNumberOrNull(readValue('prPhase'));
   const phase: WashPhase =
@@ -102,12 +113,34 @@ export function parseWasherStatus(
     spinSpeedRpm: toNumberOrNull(readValue('spinSpeed')),
     currentCycleEnergyKwh: toNumberOrNull(readValue('currentElectricityUsed')),
     currentCycleWaterLitres: toNumberOrNull(readValue('currentWaterUsed')),
-    doorLocked: readValue('doorLockStatus') === '1',
+    doorLocked: readDoorLocked(readValue),
     remoteControlEnabled: readValue('remoteCtrValid') === '1',
     errorCode,
     fetchedAt,
     rawReadings: listRawReadings(rawParameters),
   };
+}
+
+/** True when a "running" program's last minute has lasted far too long. */
+function hasStalledAtTheEnd(
+  reportedState: MachineState,
+  remainingTime: { parNewVal?: string; lastUpdate?: string } | undefined,
+  fetchedAt: Date,
+): boolean {
+  if (reportedState !== 'running' || !remainingTime?.lastUpdate) return false;
+  const minutesLeft = toNumberOrNull(remainingTime.parNewVal);
+  const lastChangedMs = new Date(remainingTime.lastUpdate).getTime();
+  if (minutesLeft === null || minutesLeft > 1 || Number.isNaN(lastChangedMs)) return false;
+  return fetchedAt.getTime() - lastChangedMs >= STUCK_AT_END_MINUTES * 60 * 1000;
+}
+
+/**
+ * "doorLockStatus" 1 means locked (as in the Home Assistant hon
+ * integration). Machines that don't send it get null rather than a guess.
+ */
+function readDoorLocked(readValue: (name: string) => string | undefined): boolean | null {
+  const doorLockStatus = readValue('doorLockStatus');
+  return doorLockStatus === undefined ? null : doorLockStatus === '1';
 }
 
 /** All of h.on's parameters as name/value pairs, sorted by name. */
