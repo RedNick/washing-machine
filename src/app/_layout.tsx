@@ -8,7 +8,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ActionButton } from '../components/ActionButton';
 import { spacing, useThemeColours } from '../components/theme';
+import { startCrashReportingIfAllowed } from '../diagnostics/crashReporting';
 import { WasherProvider, useWasher } from '../washer/WasherContext';
+
+// Off unless you've switched "Crash reports" on in Settings.
+void startCrashReportingIfAllowed();
 
 export default function RootLayout() {
   return (

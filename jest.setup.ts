@@ -13,3 +13,8 @@ jest.mock('expo-notifications', () => ({
   requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
 }));
 
+// Crash reporting is tested by checking what the app asks Sentry to do.
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  close: jest.fn(async () => undefined),
+}));
