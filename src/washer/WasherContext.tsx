@@ -7,6 +7,7 @@ import { HonAuthError, HonSession } from '../hon/auth/honSession';
 import { HonCloudWasher, NoWasherFoundError } from '../hon/honCloudWasher';
 import { STATUS_POLL_WHILE_IDLE_MS, STATUS_POLL_WHILE_RUNNING_MS } from '../hon/honConstants';
 import { prepareNotifications, resetFinishAlert, updateFinishAlert } from '../notifications/finishAlertScheduler';
+import { sendWashReportIfAllowed } from '../diagnostics/washReporting';
 import { clearCycleLog, recordCycleIfJustFinished } from '../storage/cycleLog';
 import { secureSessionStore } from '../storage/secureSessionStore';
 import { DemoWasher } from './demoWasher';
@@ -135,7 +136,9 @@ export function WasherProvider({ children }: { children: ReactNode }) {
       setStatus(latestStatus);
       setStatusError(null);
       await updateFinishAlert(latestStatus);
-      await recordCycleIfJustFinished(latestStatus);
+      const justFinishedCycle = await recordCycleIfJustFinished(latestStatus);
+      // Not awaited, so a slow network never holds up the screen.
+      if (justFinishedCycle) void sendWashReportIfAllowed(washerAtStart, justFinishedCycle, latestStatus);
     } catch (error) {
       if (activeWasherRef.current !== washerAtStart) return;
       if (error instanceof HonAuthError) {
@@ -184,7 +187,17 @@ export function WasherProvider({ children }: { children: ReactNode }) {
       signOut,
       retryConnection: restoreSavedSignIn,
     }),
-    [connection, status, statusError, isRefreshing, refreshStatus, signInWithTokens, startDemo, signOut, restoreSavedSignIn],
+    [
+      connection,
+      status,
+      statusError,
+      isRefreshing,
+      refreshStatus,
+      signInWithTokens,
+      startDemo,
+      signOut,
+      restoreSavedSignIn,
+    ],
   );
 
   return <WasherContext.Provider value={value}>{children}</WasherContext.Provider>;

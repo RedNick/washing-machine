@@ -1,0 +1,55 @@
+# Deploys the Cloudflare Worker that receives h.off's optional wash reports.
+# Needs two repository secrets: CLOUDFLARE_API_TOKEN (with Workers Scripts
+# and D1 edit permissions) and CLOUDFLARE_ACCOUNT_ID.
+name: Deploy wash report worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wash-report-worker/**'
+      - '.github/workflows/deploy-wash-report-worker.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-wash-report-worker
+
+jobs:
+  deploy:
+    name: Deploy the worker
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wash-report-worker
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+      DATABASE_NAME: h-off-wash-reports
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: wash-report-worker/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+
+      - name: Create the D1 database if it doesn't exist yet
+        run: |
+          if ! npx wrangler d1 list --json | jq -e --arg name "$DATABASE_NAME" '.[] | select(.name == $name)' > /dev/null; then
+            npx wrangler d1 create "$DATABASE_NAME"
+          fi
+
+      - name: Point the worker at the database
+        run: |
+          database_id=$(npx wrangler d1 list --json | jq -r --arg name "$DATABASE_NAME" '.[] | select(.name == $name) | .uuid')
+          test -n "$database_id"
+          sed -i "s/FILLED_IN_BY_DEPLOY_WORKFLOW/$database_id/" wrangler.jsonc
+
+      - name: Create or update the table
+        run: npx wrangler d1 migrations apply "$DATABASE_NAME" --remote
+
+      - name: Deploy
+        run: npx wrangler deploy

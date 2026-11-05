@@ -1,0 +1,18 @@
+{
+  // The h.off wash report receiver. Deployed by
+  // .github/workflows/deploy-wash-report-worker.yml, which fills in
+  // database_id after making sure the D1 database exists.
+  "name": "h-off-wash-reports",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "WASH_REPORTS",
+      "database_name": "h-off-wash-reports",
+      "database_id": "FILLED_IN_BY_DEPLOY_WORKFLOW",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "triggers": { "crons": ["17 3 * * *"] }
+}

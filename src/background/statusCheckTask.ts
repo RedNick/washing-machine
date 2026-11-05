@@ -1,6 +1,7 @@
 import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 
+import { sendWashReportIfAllowed } from '../diagnostics/washReporting';
 import { HonSession } from '../hon/auth/honSession';
 import { HonCloudWasher } from '../hon/honCloudWasher';
 import { updateFinishAlert } from '../notifications/finishAlertScheduler';
@@ -28,7 +29,8 @@ TaskManager.defineTask(STATUS_CHECK_TASK_NAME, async () => {
     const washer = await HonCloudWasher.connect(session);
     const status = await washer.getStatusWithoutProgramName();
     await updateFinishAlert(status);
-    await recordCycleIfJustFinished(status);
+    const justFinishedCycle = await recordCycleIfJustFinished(status);
+    if (justFinishedCycle) await sendWashReportIfAllowed(washer, justFinishedCycle, status);
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch (error) {
     console.warn('Background status check failed', error);
