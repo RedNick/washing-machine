@@ -44,6 +44,8 @@ jobs:
     env:
       # Built into the app's JavaScript so the Now screen can show the build number.
       EXPO_PUBLIC_BUILD_NUMBER: ${{ github.run_number }}
+      # Where crash reports go, if you switch them on in Settings. Without it the switch stays disabled.
+      EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

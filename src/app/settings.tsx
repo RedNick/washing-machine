@@ -5,6 +5,7 @@ import { ActionButton } from '../components/ActionButton';
 import { Card } from '../components/Card';
 import { spacing, useThemeColours } from '../components/theme';
 import { buildDiagnosticReport } from '../diagnostics/buildDiagnosticReport';
+import { setCrashReportingEnabled } from '../diagnostics/crashReporting';
 import { isCrashReportingSetUp, isWashReportingSetUp } from '../diagnostics/reportingServices';
 import { shareDiagnosticReport } from '../diagnostics/shareDiagnosticReport';
 import {
@@ -71,10 +72,13 @@ export default function SettingsScreen() {
       <Card title="Automatic reports">
         <SettingSwitch
           label="Crash reports"
-          explanation="Sends details of what went wrong when h.off crashes or shows an error."
+          explanation="Sends details of what went wrong to Sentry (sentry.io) when h.off crashes. Private details are removed first."
           isOn={settings.sendCrashReports}
           isAvailable={isCrashReportingSetUp}
-          onChange={(isOn) => changeSetting('sendCrashReports', isOn)}
+          onChange={(isOn) => {
+            changeSetting('sendCrashReports', isOn);
+            setCrashReportingEnabled(isOn);
+          }}
         />
         <SettingSwitch
           label="Wash reports"
