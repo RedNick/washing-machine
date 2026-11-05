@@ -82,7 +82,7 @@ export default function SettingsScreen() {
         />
         <SettingSwitch
           label="Wash reports"
-          explanation="At the end of each wash, sends the program, how long it took and the machine's readings. No account details."
+          explanation="At the end of each wash, sends the program, what it used and the machine's final readings to the developer's server, to improve how h.off spots the end of a wash. No account details."
           isOn={settings.sendWashReports}
           isAvailable={isWashReportingSetUp}
           onChange={(isOn) => changeSetting('sendWashReports', isOn)}

@@ -38,15 +38,19 @@ export async function loadFinishedCycles(): Promise<FinishedCycle[]> {
 /**
  * Call with every new status. When a wash has just ended, it is added to
  * the log using the last usage figures seen while it was running (some
- * machines reset them to zero at the end).
+ * machines reset them to zero at the end), and returned. Otherwise returns null.
  */
-export async function recordCycleIfJustFinished(status: WasherStatus, now: Date = new Date()): Promise<void> {
-  if (status.state === 'offline') return;
+export async function recordCycleIfJustFinished(
+  status: WasherStatus,
+  now: Date = new Date(),
+): Promise<FinishedCycle | null> {
+  if (status.state === 'offline') return null;
 
   const savedLastSeen = await AsyncStorage.getItem(LAST_SEEN_KEY);
   const lastSeen: LastSeenCycle | null = savedLastSeen ? JSON.parse(savedLastSeen) : null;
 
   const wasRunning = lastSeen?.state === 'running' || lastSeen?.state === 'paused';
+  let justFinishedCycle: FinishedCycle | null = null;
   if (wasRunning && status.state === 'finished') {
     const entry: FinishedCycle = {
       programName: status.programName ?? lastSeen.programName,
@@ -56,6 +60,7 @@ export async function recordCycleIfJustFinished(status: WasherStatus, now: Date 
     };
     const entries = await loadFinishedCycles();
     await AsyncStorage.setItem(CYCLE_LOG_KEY, JSON.stringify([entry, ...entries].slice(0, MAX_ENTRIES)));
+    justFinishedCycle = entry;
   }
 
   const nextLastSeen: LastSeenCycle = {
@@ -65,6 +70,7 @@ export async function recordCycleIfJustFinished(status: WasherStatus, now: Date 
     waterLitres: status.currentCycleWaterLitres,
   };
   await AsyncStorage.setItem(LAST_SEEN_KEY, JSON.stringify(nextLastSeen));
+  return justFinishedCycle;
 }
 
 /** Forgets every logged wash, e.g. when leaving the demo machine. */
