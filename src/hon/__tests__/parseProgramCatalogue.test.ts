@@ -1,4 +1,9 @@
-import { buildProgramNameByCode, parsePrograms, programDisplayName } from '../parseProgramCatalogue';
+import {
+  buildProgramNameByCode,
+  listLeftOutPrograms,
+  parsePrograms,
+  programDisplayName,
+} from '../parseProgramCatalogue';
 import { sampleCatalogue } from './honFixtures';
 
 describe('programDisplayName', () => {
@@ -30,14 +35,70 @@ describe('parsePrograms', () => {
     expect(ids).not.toContain('PROGRAMS.WM_WD.HIDDEN_ONE');
   });
 
+  it('keeps programs whose remoteVisible value is missing or empty', () => {
+    const catalogueWithBlankVisibility = {
+      startProgram: {
+        'PROGRAMS.WM_WD.COTTON': {
+          ...sampleCatalogue.startProgram!['PROGRAMS.WM_WD.HIDDEN_ONE'],
+          ancillaryParameters: { remoteVisible: { category: 'general', typology: 'fixed', fixedValue: null } },
+        },
+        'PROGRAMS.WM_WD.SYNTHETIC': {
+          ...sampleCatalogue.startProgram!['PROGRAMS.WM_WD.HIDDEN_ONE'],
+          ancillaryParameters: {},
+        },
+      },
+    };
+    expect(parsePrograms(catalogueWithBlankVisibility).map((program) => program.id)).toEqual([
+      'PROGRAMS.WM_WD.COTTON',
+      'PROGRAMS.WM_WD.SYNTHETIC',
+    ]);
+  });
+
+  it('lists the programs it leaves out, with the reason, for reports', () => {
+    expect(listLeftOutPrograms(sampleCatalogue)).toEqual([
+      { id: 'PROGRAMS.WM_WD.IOT_RECIPE_SECRET', reason: expect.stringContaining('recipe') },
+      { id: 'PROGRAMS.WM_WD.HIDDEN_ONE', reason: expect.stringContaining('remoteVisible') },
+    ]);
+  });
+
   it('turns parameters into options the user can change', () => {
     const cottons = programs[0];
     expect(cottons.estimatedMinutes).toBe(163);
     expect(cottons.options).toEqual([
-      { kind: 'choice', key: 'temp', label: 'Temperature', choices: ['0', '20', '40', '60', '90'], defaultValue: '40', unit: '°C' },
-      { kind: 'choice', key: 'spinSpeed', label: 'Spin speed', choices: ['0', '800', '1400'], defaultValue: '1400', unit: 'rpm' },
-      { kind: 'choice', key: 'extraRinses', label: 'Extra rinses', choices: ['0', '1', '2'], defaultValue: '1', unit: null },
-      { kind: 'range', key: 'delayTime', label: 'Delay start', minimum: 0, maximum: 1410, step: 30, defaultValue: 0, unit: 'min' },
+      {
+        kind: 'choice',
+        key: 'temp',
+        label: 'Temperature',
+        choices: ['0', '20', '40', '60', '90'],
+        defaultValue: '40',
+        unit: '°C',
+      },
+      {
+        kind: 'choice',
+        key: 'spinSpeed',
+        label: 'Spin speed',
+        choices: ['0', '800', '1400'],
+        defaultValue: '1400',
+        unit: 'rpm',
+      },
+      {
+        kind: 'choice',
+        key: 'extraRinses',
+        label: 'Extra rinses',
+        choices: ['0', '1', '2'],
+        defaultValue: '1',
+        unit: null,
+      },
+      {
+        kind: 'range',
+        key: 'delayTime',
+        label: 'Delay start',
+        minimum: 0,
+        maximum: 1410,
+        step: 30,
+        defaultValue: 0,
+        unit: 'min',
+      },
       { kind: 'toggle', key: 'prewash', label: 'Prewash', defaultValue: false },
     ]);
   });
