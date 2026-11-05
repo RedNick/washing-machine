@@ -46,6 +46,9 @@ jobs:
       EXPO_PUBLIC_BUILD_NUMBER: ${{ github.run_number }}
       # Where crash reports go, if you switch them on in Settings. Without it the switch stays disabled.
       EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      # The deployed wash report worker, e.g. https://h-off-wash-reports.<you>.workers.dev.
+      # Without it the "Wash reports" switch stays disabled.
+      EXPO_PUBLIC_WASH_REPORT_URL: ${{ secrets.WASH_REPORT_URL }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

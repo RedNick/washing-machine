@@ -1,0 +1,45 @@
+# Downloads the wash reports stored by the Cloudflare Worker, as a private
+# workflow artifact (wash-reports.json), so they can be looked at to improve
+# h.off. Run it by hand from the Actions tab.
+name: Export wash reports
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: How many days back to export
+        default: '30'
+
+jobs:
+  export:
+    name: Export wash reports
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wash-report-worker
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: wash-report-worker/package-lock.json
+      - run: npm ci
+      - name: Read the reports
+        env:
+          DAYS_BACK: ${{ inputs.days }}
+        run: |
+          # Only digits, so the input can't change the query.
+          days_back=$(echo "$DAYS_BACK" | tr -cd '0-9')
+          npx wrangler d1 execute h-off-wash-reports --remote --json \
+            --command "SELECT * FROM wash_reports WHERE received_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-${days_back:-30} days') ORDER BY received_at DESC" \
+            > wash-reports.json
+      - uses: actions/upload-artifact@v6
+        with:
+          name: wash-reports
+          path: wash-report-worker/wash-reports.json
+          retention-days: 7

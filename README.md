@@ -82,6 +82,7 @@ Code shrinking (R8) is on for release builds in `app.json`. Build 4 crashed on l
 | `src/notifications/` | The "wash finished" alert. `planFinishAlert.ts` decides what to do and `finishAlertScheduler.ts` does it. |
 | `src/background/` | The check Android runs about every 15 minutes while the app is closed. |
 | `src/storage/` | Secure token storage, the on-phone log of finished washes, and the report settings. |
+| `wash-report-worker/` | The Cloudflare Worker that stores optional wash reports (see below). |
 | `src/diagnostics/` | "Send a report": building the report, removing private details, and sharing the file. |
 | `src/programs/` | Organising the program list: groups, favourites and hidden programs (saved on the phone). |
 | `src/components/` | Small shared UI pieces and colours. |
@@ -95,3 +96,12 @@ Screens only use the `WasherService` interface in `src/washer/washerTypes.ts`. `
 - **Option combinations.** Some machines don't allow every combination of options (for example, a high spin on a wool program). h.on sends rules for this, but the app doesn't apply them yet. If the machine rejects a combination, the app shows the error.
 - **Alerts** depend on the machine's own estimate of the time left. If the estimate jumps a lot after the background check, the alert can be a few minutes off.
 - **Cloud only.** h.on machines can't be controlled over the local network.
+
+## Wash reports
+
+If you switch **Wash reports** on in Settings, the app sends a short summary at the end of each wash (model, program, energy and water, and the machine's final readings, with private details removed) to a Cloudflare Worker in `wash-report-worker/`. It stores them in a D1 database for 180 days. There is no web page for reading them back: run the **Export wash reports** workflow from the Actions tab to download them.
+
+Setting it up:
+1. In Cloudflare, create an API token from the "Edit Cloudflare Workers" template, adding **Account → D1 → Edit**. Add it as the repository secret `CLOUDFLARE_API_TOKEN`, and your account ID as `CLOUDFLARE_ACCOUNT_ID`.
+2. Run the **Deploy wash report worker** workflow. It creates the database and prints the worker's address (`https://h-off-wash-reports.<your subdomain>.workers.dev`).
+3. Add that address as the secret `WASH_REPORT_URL`. Builds after that can switch wash reports on.
