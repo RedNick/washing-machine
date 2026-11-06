@@ -31,7 +31,15 @@ const KNOWN_OPTIONS: Record<string, { label: string; unit?: string }> = {
  * app never shows them. "lang" is the language of the machine's display;
  * "delayStatus" is switched on for you when you choose a delay start.
  */
-const NOT_WASH_OPTIONS = new Set(['lang', 'delayStatus', 'prCode', 'prStr', 'prPosition', 'onOffStatus', 'remoteActionable']);
+const NOT_WASH_OPTIONS = new Set([
+  'lang',
+  'delayStatus',
+  'prCode',
+  'prStr',
+  'prPosition',
+  'onOffStatus',
+  'remoteActionable',
+]);
 
 /** h.on's separate extra rinse switches, in order. */
 export const EXTRA_RINSE_SWITCH_KEYS = ['extraRinse1', 'extraRinse2', 'extraRinse3'];
@@ -148,13 +156,32 @@ function toWasherProgram(programId: string, definition: HonCommandDefinition): W
   };
 }
 
-/** True for programs the app should offer to start. */
-function isStartableProgram(programId: string, definition: HonCommandDefinition): boolean {
+/**
+ * Why a program isn't offered in the app, or null when it is.
+ *
+ * Only an explicit remoteVisible of "0" hides a program. A missing or empty
+ * value used to count as "0" too (that's how fixed values are sent), which
+ * could hide everyday programs such as Cotton on some machines.
+ */
+export function whyProgramIsLeftOut(programId: string, definition: HonCommandDefinition): string | null {
   const lowerCaseId = programId.toLowerCase();
-  if (HIDDEN_PROGRAM_MARKERS.some((marker) => lowerCaseId.includes(marker))) return false;
-  // h.on marks some programs as not to be shown in the app.
+  if (HIDDEN_PROGRAM_MARKERS.some((marker) => lowerCaseId.includes(marker))) {
+    return 'h.on recipe or guided variant, which cannot be started directly';
+  }
   const remoteVisible = definition.ancillaryParameters?.remoteVisible;
-  return !remoteVisible || defaultValueOf(remoteVisible) !== '0';
+  const remoteVisibleValue = remoteVisible?.fixedValue ?? remoteVisible?.defaultValue;
+  if (remoteVisibleValue !== null && remoteVisibleValue !== undefined && String(remoteVisibleValue).trim() === '0') {
+    return 'h.on marks it as not startable from a phone (remoteVisible = 0)';
+  }
+  return null;
+}
+
+/** Programs the machine has but the app leaves out, with the reason for each. For "Send a report". */
+export function listLeftOutPrograms(catalogue: HonCommandCatalogue): { id: string; reason: string }[] {
+  return Object.entries(catalogue.startProgram ?? {}).flatMap(([programId, definition]) => {
+    const reason = whyProgramIsLeftOut(programId, definition);
+    return reason ? [{ id: programId, reason }] : [];
+  });
 }
 
 /**
@@ -163,7 +190,7 @@ function isStartableProgram(programId: string, definition: HonCommandDefinition)
  */
 export function parsePrograms(catalogue: HonCommandCatalogue): WasherProgram[] {
   const programs = Object.entries(catalogue.startProgram ?? {})
-    .filter(([programId, definition]) => isStartableProgram(programId, definition))
+    .filter(([programId, definition]) => whyProgramIsLeftOut(programId, definition) === null)
     .map(([programId, definition]) => toWasherProgram(programId, definition));
 
   const builtIn = programs.filter((program) => program.isBuiltIn);

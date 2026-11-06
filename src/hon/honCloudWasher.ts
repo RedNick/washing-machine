@@ -10,7 +10,12 @@ import type { FetchFunction, HonSession } from './auth/honSession';
 import { buildCommandPayload, type BuildCommandInput } from './buildCommandPayload';
 import { sendHonApiRequest, type HonApiRequest } from './honApiRequest';
 import { HON_APP_VERSION, HON_OS_NAME } from './honConstants';
-import { buildProgramNameByCode, parsePrograms, programDisplayName } from './parseProgramCatalogue';
+import {
+  buildProgramNameByCode,
+  listLeftOutPrograms,
+  parsePrograms,
+  programDisplayName,
+} from './parseProgramCatalogue';
 import { parseLifetimeTotals, parseWasherStatus } from './parseWasherStatus';
 import {
   WasherCommandError,
@@ -176,6 +181,10 @@ export class HonCloudWasher implements WasherService {
         data: recentHistory,
       },
     ];
+  }
+
+  async getLeftOutPrograms(): Promise<{ id: string; reason: string }[]> {
+    return listLeftOutPrograms(await this.loadCatalogue());
   }
 
   private async sendSimpleCommand(commandName: 'pauseProgram' | 'resumeProgram' | 'stopProgram'): Promise<void> {

@@ -179,6 +179,8 @@ export interface WasherService {
    * readings" to look for a reliable "wash finished" signal. Real machines only.
    */
   getDiagnostics?(): Promise<DiagnosticBlock[]>;
+  /** Programs the machine has but the app doesn't offer, and why. Real machines only, for "Send a report". */
+  getLeftOutPrograms?(): Promise<{ id: string; reason: string }[]>;
 }
 
 /** A titled block of raw JSON from h.on. */

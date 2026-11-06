@@ -19,6 +19,8 @@ export interface DiagnosticReport {
   status: unknown;
   rawDiagnostics: unknown;
   programs: unknown;
+  /** Programs the machine has that the app leaves out, with the reason for each. */
+  leftOutPrograms: unknown;
   recentFinishedWashes: unknown;
 }
 
@@ -36,7 +38,7 @@ const FINISHED_WASHES_TO_INCLUDE = 10;
 
 export async function buildDiagnosticReport(context: ReportContext): Promise<DiagnosticReport> {
   const { washer } = context;
-  const [status, rawDiagnostics, programs, recentFinishedWashes] = await Promise.all([
+  const [status, rawDiagnostics, programs, leftOutPrograms, recentFinishedWashes] = await Promise.all([
     describeFailures(() => washer.getStatus()),
     describeFailures(async () => {
       if (!washer.getDiagnostics) return 'Not available for this machine.';
@@ -44,6 +46,7 @@ export async function buildDiagnosticReport(context: ReportContext): Promise<Dia
       return blocks.map((block) => ({ title: block.title, data: block.data }));
     }),
     describeFailures(async () => summarisePrograms(await washer.getPrograms())),
+    describeFailures(async () => (washer.getLeftOutPrograms ? washer.getLeftOutPrograms() : [])),
     describeFailures(async () => (await loadFinishedCycles()).slice(0, FINISHED_WASHES_TO_INCLUDE)),
   ]);
 
@@ -55,6 +58,7 @@ export async function buildDiagnosticReport(context: ReportContext): Promise<Dia
     status,
     rawDiagnostics,
     programs,
+    leftOutPrograms,
     recentFinishedWashes,
   };
   return redactPrivateDetails(report);
