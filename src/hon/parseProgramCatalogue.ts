@@ -159,19 +159,15 @@ function toWasherProgram(programId: string, definition: HonCommandDefinition): W
 /**
  * Why a program isn't offered in the app, or null when it is.
  *
- * Only an explicit remoteVisible of "0" hides a program. A missing or empty
- * value used to count as "0" too (that's how fixed values are sent), which
- * could hide everyday programs such as Cotton on some machines.
+ * h.on's remoteVisible flag is deliberately ignored. On a Hoover
+ * H3DPS4866TAMB-80 it is "0" for 46 everyday programs (Cotton, Coloured,
+ * Whites, Rapid 59...), yet the h.on app starts them anyway: a "Colored"
+ * wash (IOT_WASH_COLOURED) was running from h.on while flagged "0".
  */
-export function whyProgramIsLeftOut(programId: string, definition: HonCommandDefinition): string | null {
+export function whyProgramIsLeftOut(programId: string, _definition: HonCommandDefinition): string | null {
   const lowerCaseId = programId.toLowerCase();
   if (HIDDEN_PROGRAM_MARKERS.some((marker) => lowerCaseId.includes(marker))) {
     return 'h.on recipe or guided variant, which cannot be started directly';
-  }
-  const remoteVisible = definition.ancillaryParameters?.remoteVisible;
-  const remoteVisibleValue = remoteVisible?.fixedValue ?? remoteVisible?.defaultValue;
-  if (remoteVisibleValue !== null && remoteVisibleValue !== undefined && String(remoteVisibleValue).trim() === '0') {
-    return 'h.on marks it as not startable from a phone (remoteVisible = 0)';
   }
   return null;
 }

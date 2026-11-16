@@ -20,6 +20,25 @@ describe('parseWasherStatus', () => {
     });
   });
 
+  it("names the running program from h.on's activity when its code matches", () => {
+    // prCode 4 is shared by several programs, so the code alone would say "Synthetic and coloured".
+    const sharedCodeNames = new Map([[4, 'Synthetic and coloured']]);
+    const context = {
+      ...contextWith({ machMode: '2', prCode: '4' }),
+      activity: { attributes: { programName: 'IOT_WASH_COLOURED', prCode: '4' } },
+    };
+    expect(parseWasherStatus(context, sharedCodeNames).programName).toBe('Coloured');
+  });
+
+  it('ignores a leftover activity from a different program', () => {
+    const sharedCodeNames = new Map([[4, 'Synthetic and coloured']]);
+    const context = {
+      ...contextWith({ machMode: '2', prCode: '4' }),
+      activity: { attributes: { programName: 'PROGRAMS.WM_WD.HIGH_DRY', prCode: '16' } },
+    };
+    expect(parseWasherStatus(context, sharedCodeNames).programName).toBe('Synthetic and coloured');
+  });
+
   it('ignores the leftover time once a program has finished', () => {
     const status = parseWasherStatus(contextWith({ machMode: '7', remainingTimeMM: '83' }), programNames);
     expect(status.state).toBe('finished');

@@ -24,15 +24,19 @@ describe('parsePrograms', () => {
     expect(programs.map((program) => program.displayName)).toEqual([
       'Cottons',
       'Eco 40-60',
+      'Hidden one',
       'Bed linen',
       "Men's trousers",
     ]);
   });
 
-  it('hides recipe programs and ones marked not visible', () => {
+  it('hides recipe programs', () => {
     const ids = programs.map((program) => program.id);
     expect(ids).not.toContain('PROGRAMS.WM_WD.IOT_RECIPE_SECRET');
-    expect(ids).not.toContain('PROGRAMS.WM_WD.HIDDEN_ONE');
+  });
+
+  it('keeps programs h.on marks as remoteVisible = 0, because the h.on app starts them anyway', () => {
+    expect(programs.map((program) => program.id)).toContain('PROGRAMS.WM_WD.HIDDEN_ONE');
   });
 
   it('keeps programs whose remoteVisible value is missing or empty', () => {
@@ -57,7 +61,6 @@ describe('parsePrograms', () => {
   it('lists the programs it leaves out, with the reason, for reports', () => {
     expect(listLeftOutPrograms(sampleCatalogue)).toEqual([
       { id: 'PROGRAMS.WM_WD.IOT_RECIPE_SECRET', reason: expect.stringContaining('recipe') },
-      { id: 'PROGRAMS.WM_WD.HIDDEN_ONE', reason: expect.stringContaining('remoteVisible') },
     ]);
   });
 

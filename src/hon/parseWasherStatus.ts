@@ -1,5 +1,6 @@
 import type { HonContext } from './honApiTypes';
 import type { MachineState, RawReading, WashPhase, WasherStatus } from '../washer/washerTypes';
+import { programDisplayName } from './parseProgramCatalogue';
 
 /**
  * h.on reports the machine's mode as a number ("machMode"). Meanings come
@@ -63,6 +64,23 @@ function toNumberOrNull(rawValue: string | undefined): number | null {
 }
 
 /**
+ * The name of the program that was started, from h.on's "activity" record.
+ *
+ * Several programs share one machine program code (prCode 4 is both
+ * "Synthetic and coloured" and "Colored"), so the code alone can give the
+ * wrong name. The activity names the exact program, but it lingers after a
+ * cycle, so it's only trusted when its code matches the one running now.
+ */
+function programNameFromActivity(context: HonContext, runningProgramCode: number | null): string | null {
+  const attributes = context.activity?.attributes;
+  if (!attributes || typeof attributes !== 'object') return null;
+  const { programName, prCode } = attributes as Record<string, unknown>;
+  if (typeof programName !== 'string' || programName.trim() === '') return null;
+  if (runningProgramCode === null || toNumberOrNull(String(prCode ?? '')) !== runningProgramCode) return null;
+  return programDisplayName(programName);
+}
+
+/**
  * Turns the raw h.on "context" response into the app's WasherStatus.
  *
  * @param programNameByCode maps the machine's numeric program code to a
@@ -78,20 +96,18 @@ export function parseWasherStatus(
 
   const isConnected = context.lastConnEvent?.category !== 'DISCONNECTED';
   const machineMode = toNumberOrNull(readValue('machMode')) ?? 0;
-  const reportedState: MachineState = isConnected
-    ? (MACHINE_STATE_BY_MODE[machineMode] ?? 'idle')
-    : 'offline';
+  const reportedState: MachineState = isConnected ? (MACHINE_STATE_BY_MODE[machineMode] ?? 'idle') : 'offline';
   const state: MachineState = hasStalledAtTheEnd(reportedState, rawParameters.remainingTimeMM, fetchedAt)
     ? 'finished'
     : reportedState;
 
   const phaseCode = toNumberOrNull(readValue('prPhase'));
-  const phase: WashPhase =
-    phaseCode === null ? 'unknown' : (WASH_PHASE_BY_CODE[phaseCode] ?? 'unknown');
+  const phase: WashPhase = phaseCode === null ? 'unknown' : (WASH_PHASE_BY_CODE[phaseCode] ?? 'unknown');
 
   const programCode = toNumberOrNull(readValue('prCode'));
   const programName =
-    programCode !== null && programCode > 0 ? (programNameByCode.get(programCode) ?? null) : null;
+    programNameFromActivity(context, programCode) ??
+    (programCode !== null && programCode > 0 ? (programNameByCode.get(programCode) ?? null) : null);
 
   // The machine keeps the last remaining time after a program ends, so only
   // trust it while something is actually running or paused.
@@ -144,9 +160,7 @@ function readDoorLocked(readValue: (name: string) => string | undefined): boolea
 }
 
 /** All of h.on's parameters as name/value pairs, sorted by name. */
-function listRawReadings(
-  rawParameters: Record<string, { parNewVal?: string; lastUpdate?: string }>,
-): RawReading[] {
+function listRawReadings(rawParameters: Record<string, { parNewVal?: string; lastUpdate?: string }>): RawReading[] {
   return Object.entries(rawParameters)
     .map(([name, parameter]) => {
       const lastUpdated = parameter.lastUpdate ? new Date(parameter.lastUpdate) : null;
