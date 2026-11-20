@@ -152,8 +152,21 @@ function toWasherProgram(programId: string, definition: HonCommandDefinition): W
     description: definition.description ?? '',
     estimatedMinutes,
     isBuiltIn: !lastSegment.toUpperCase().startsWith('IOT_'),
+    fabricHint: fabricHintOf(definition),
     options,
   };
+}
+
+/** h.on's "dryType" ("C" = cotton, "S" = synthetic) as a fabric hint, or null when it gives none. */
+function fabricHintOf(definition: HonCommandDefinition): WasherProgram['fabricHint'] {
+  const dryType = definition.ancillaryParameters?.dryType;
+  if (!dryType) return null;
+  const value = stripBrackets(String(defaultValueOf(dryType)))
+    .trim()
+    .toUpperCase();
+  if (value === 'C') return 'cotton';
+  if (value === 'S') return 'synthetics';
+  return null;
 }
 
 /**

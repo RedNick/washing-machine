@@ -26,12 +26,13 @@ describe('Programs screen', () => {
   it('lets you star and hide programs', async () => {
     await renderRouter({ _layout: DemoMachineLayout, index: ProgramsScreen }, { initialUrl: '/' });
 
-    // Grouped, with no favourites yet. Each group has a heading and a jump button.
-    expect(await screen.findByLabelText('Jump to Everyday')).toBeTruthy();
-    expect(screen.queryByLabelText('Jump to Favourites')).toBeNull();
+    // Sorted by fabric, with no favourites yet.
+    // "Cotton" is both a chip and a section heading.
+    expect(await screen.findAllByText('Cotton')).toHaveLength(2);
+    expect(screen.queryByText('Favourites')).toBeNull();
 
     await fireEvent.press(screen.getByLabelText('Add Care 14 to favourites'));
-    expect(await screen.findByLabelText('Jump to Favourites')).toBeTruthy();
+    expect(await screen.findByText('Favourites')).toBeTruthy();
 
     await fireEvent.press(screen.getByText('Edit list'));
     await fireEvent.press((await screen.findAllByText('Hide'))[0]);
@@ -46,9 +47,20 @@ describe('Programs screen', () => {
     expect(await screen.findByText('Matching programs')).toBeTruthy();
     expect(screen.getByText('Eco 40-60')).toBeTruthy();
     expect(screen.queryByText('Cottons')).toBeNull();
-    expect(screen.queryByLabelText('Jump to Everyday')).toBeNull();
 
     await fireEvent.changeText(screen.getByLabelText('Search programs'), 'zzz');
     expect(await screen.findByText('No programs match "zzz".')).toBeTruthy();
+  });
+
+  it('shows one fabric at a time from the chips', async () => {
+    await renderRouter({ _layout: DemoMachineLayout, index: ProgramsScreen }, { initialUrl: '/' });
+
+    await fireEvent.press(await screen.findByLabelText('Show only Synthetics programs'));
+    expect(await screen.findByText('Synthetic and coloured')).toBeTruthy();
+    expect(screen.queryByText('Cottons')).toBeNull();
+
+    // Tapping the chosen chip again shows everything.
+    await fireEvent.press(screen.getByLabelText('Show only Synthetics programs'));
+    expect(await screen.findByText('Cottons')).toBeTruthy();
   });
 });
