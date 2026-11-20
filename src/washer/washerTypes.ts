@@ -137,6 +137,12 @@ export interface WasherProgram {
    * extra "app only" programs that h.on downloads to the machine.
    */
   isBuiltIn: boolean;
+  /**
+   * h.on's hint about the fabric (its "dryType": C = cotton, S = synthetic),
+   * when it gives one. Only used to sort programs named after a colour, such
+   * as Whites or Darks, under a fabric chip.
+   */
+  fabricHint?: 'cotton' | 'synthetics' | null;
   options: ProgramOption[];
 }
 

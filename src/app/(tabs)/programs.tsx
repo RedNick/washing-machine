@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ActionButton } from '../../components/ActionButton';
 import { spacing, useThemeColours } from '../../components/theme';
+import { fabricTitle, type FabricTypeId } from '../../programs/fabricTypes';
 import { organisePrograms } from '../../programs/organisePrograms';
 import { useProgramListChoices } from '../../programs/useProgramListChoices';
 import { formatDuration } from '../../washer/formatters';
@@ -12,20 +13,16 @@ import type { WasherProgram } from '../../washer/washerTypes';
 
 /**
  * Every program the machine offers, with your favourites first and the rest
- * in groups. Tap one to set it up and start it. Tap ☆ to make it a
+ * sorted by fabric. Tap one to set it up and start it. Tap ☆ to make it a
  * favourite, or "Edit list" to hide programs you never use. The search box
- * and the group buttons above the list stay put while the list scrolls.
+ * and the fabric chips above the list stay put while the list scrolls; a
+ * chip shows only that fabric's programs, one fabric at a time.
  */
 export default function ProgramsScreen() {
   const { programs, loadError, reload } = usePrograms();
-  const { choices, toggleFavourite, toggleHidden } = useProgramListChoices();
+  const { choices, toggleFavourite, toggleHidden, chooseFabric } = useProgramListChoices();
   const [isEditing, setIsEditing] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const programListRef = useRef<SectionList<WasherProgram>>(null);
-  /** The group last jumped to, so a jump that misses can be tried again. */
-  const lastJumpSectionIndex = useRef(0);
-  /** A jump that misses is tried again a few times, then given up. */
-  const jumpRetriesLeft = useRef(0);
   const colours = useThemeColours();
 
   if (loadError) {
@@ -46,20 +43,29 @@ export default function ProgramsScreen() {
     );
   }
 
-  const { sections, hiddenCount } = organisePrograms(programs, choices, {
+  const { sections, hiddenCount, availableFabrics } = organisePrograms(programs, choices, {
     includeHidden: isEditing,
     searchText,
   });
   const favouriteIds = new Set(choices.favouriteIds);
   const hiddenIds = new Set(choices.hiddenIds);
   const isSearching = searchText.trim() !== '';
+  // A saved chip this machine has no programs for shows as "All".
+  const chosenFabric =
+    choices.fabricFilter && availableFabrics.includes(choices.fabricFilter) ? choices.fabricFilter : null;
+  const fabricChips: { fabric: FabricTypeId | null; label: string }[] = [
+    { fabric: null, label: 'All' },
+    ...availableFabrics.map((fabric) => ({ fabric, label: fabricTitle(fabric) })),
+  ];
 
-  /** Scrolls the list so a group's heading is at the top. */
-  const jumpToSection = (sectionIndex: number) => {
-    lastJumpSectionIndex.current = sectionIndex;
-    jumpRetriesLeft.current = 3;
-    programListRef.current?.scrollToLocation(jumpTarget(sectionIndex));
-  };
+  /** Why the list is empty, and what to tap to see more. */
+  const emptyListMessage = isSearching
+    ? chosenFabric
+      ? `No ${fabricTitle(chosenFabric).toLowerCase()} programs match "${searchText.trim()}".`
+      : `No programs match "${searchText.trim()}".`
+    : chosenFabric
+      ? `Every ${fabricTitle(chosenFabric).toLowerCase()} program is hidden.`
+      : null;
 
   return (
     <View style={styles.screen}>
@@ -82,44 +88,42 @@ export default function ProgramsScreen() {
             },
           ]}
         />
-        {isSearching ? null : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.jumpButtons}>
-            {sections.map((section, sectionIndex) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fabricChips}>
+          {fabricChips.map(({ fabric, label }) => {
+            const isChosen = fabric === chosenFabric;
+            return (
               <Pressable
-                key={section.key}
+                key={fabric ?? 'all'}
                 accessibilityRole="button"
-                accessibilityLabel={`Jump to ${section.title}`}
-                onPress={() => jumpToSection(sectionIndex)}
+                accessibilityState={{ selected: isChosen }}
+                accessibilityLabel={fabric ? `Show only ${label} programs` : 'Show all programs'}
+                // Tapping the chosen chip again goes back to All.
+                onPress={() => chooseFabric(fabric)}
                 style={[
-                  styles.jumpButton,
+                  styles.fabricChip,
                   {
-                    borderColor: colours.border,
-                    backgroundColor: colours.card,
+                    borderColor: isChosen ? colours.accent : colours.border,
+                    backgroundColor: isChosen ? colours.accent : colours.card,
                   },
                 ]}
               >
-                <Text style={[styles.jumpButtonLabel, { color: colours.text }]}>{section.title}</Text>
+                <Text style={[styles.fabricChipLabel, { color: isChosen ? colours.accentText : colours.text }]}>
+                  {label}
+                </Text>
               </Pressable>
-            ))}
-          </ScrollView>
-        )}
+            );
+          })}
+        </ScrollView>
       </View>
       <SectionList
-        ref={programListRef}
         sections={sections}
         keyboardShouldPersistTaps="handled"
-        // Rows have different heights, so a far jump can miss at first; try
-        // again once the list has drawn more of itself.
-        onScrollToIndexFailed={() => {
-          if (jumpRetriesLeft.current <= 0) return;
-          jumpRetriesLeft.current -= 1;
-          setTimeout(() => programListRef.current?.scrollToLocation(jumpTarget(lastJumpSectionIndex.current)), 250);
-        }}
         ListEmptyComponent={
-          isSearching ? (
-            <Text style={[styles.message, styles.noMatches, { color: colours.mutedText }]}>
-              No programs match "{searchText.trim()}".
-            </Text>
+          emptyListMessage ? (
+            <View style={styles.noMatches}>
+              <Text style={[styles.message, { color: colours.mutedText }]}>{emptyListMessage}</Text>
+              {chosenFabric ? <TextButton label="Show all fabrics" onPress={() => chooseFabric(null)} /> : null}
+            </View>
           ) : undefined
         }
         keyExtractor={(program) => program.id}
@@ -159,11 +163,6 @@ export default function ProgramsScreen() {
       />
     </View>
   );
-}
-
-/** Where to scroll to show a group: its heading, just below the top. */
-function jumpTarget(sectionIndex: number) {
-  return { sectionIndex, itemIndex: 0, viewOffset: 40, animated: true };
 }
 
 /** A small text-only button, for actions that shouldn't shout. */
@@ -265,15 +264,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
   },
-  jumpButtons: { gap: spacing.small, paddingVertical: spacing.small },
-  jumpButton: {
+  fabricChips: { gap: spacing.small, paddingVertical: spacing.small },
+  fabricChip: {
     borderWidth: 1,
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  jumpButtonLabel: { fontSize: 14, fontWeight: '600' },
-  noMatches: { marginTop: spacing.large },
+  fabricChipLabel: { fontSize: 14, fontWeight: '600' },
+  noMatches: { marginTop: spacing.large, alignItems: 'center', gap: spacing.small },
   list: { padding: spacing.medium },
   listHeader: {
     flexDirection: 'row',
