@@ -1,18 +1,22 @@
 # Checks the app and builds an installable Android APK.
 #
+# This is the native (Kotlin + Jetpack Compose) app in native/. The workflow
+# keeps its old file name on purpose: Google Play needs every upload to have a
+# higher version code than the last, and the version code is this workflow's
+# run number, which only carries on if the file keeps its name.
+#
 # Every build is opened on an Android emulator first, and only published if
 # the app starts without crashing. The jobs pass the APK and Play bundle to
 # each other through a draft release (not Actions artifacts), because the
 # account's free artifact storage runs out and blocked builds 55 onwards.
 #
-# Builds from main (and builds started by hand) are then published on the
-# repo's Releases page as a plain .apk file you can open straight on the
-# phone. Pull request builds stop after the emulator check, and their draft
-# release is deleted.
+# Builds are published on the repo's Releases page as a plain .apk file you
+# can open straight on the phone. Builds of main are the "latest" release;
+# every other build (including pull requests, while the native app is being
+# built) is a pre-release.
 #
-# It is a release build (the app runs on its own, no development server),
-# signed with Expo's shared debug key, so it is fine for your own phone but
-# not for the Play Store.
+# The APK is signed with the same public debug key as the Expo app's APKs,
+# so it installs over them. The Play bundle is signed with the upload key.
 
 name: Build Android APK
 
@@ -29,17 +33,19 @@ concurrency:
 
 jobs:
   check:
-    name: Typecheck and tests
+    name: Tests and lint
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: native
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-java@v5
         with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test -- --ci
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v5
+      - run: ./gradlew :hon-client:test :app:testDebugUnitTest :app:lintRelease --no-daemon
 
   build-apk:
     name: Build APK
@@ -47,46 +53,39 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # needed to create the draft release that carries the build
-    env:
-      # Built into the app's JavaScript so the Now screen can show the build number.
-      EXPO_PUBLIC_BUILD_NUMBER: ${{ github.run_number }}
-      # Where crash reports go, if you switch them on in Settings. Without it the switch stays disabled.
-      EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-      # The deployed wash report worker, e.g. https://h-off-wash-reports.<you>.workers.dev.
-      # Without it the "Wash reports" switch stays disabled.
-      EXPO_PUBLIC_WASH_REPORT_URL: ${{ secrets.WASH_REPORT_URL }}
+    defaults:
+      run:
+        working-directory: native
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
       - uses: gradle/actions/setup-gradle@v5
 
-      - run: npm ci
-
-      # Generates the native android/ project from app.json. It isn't kept in
-      # the repo, so this runs on every build.
-      - name: Generate the Android project
-        run: npx expo prebuild --platform android --no-install
-
-      # Google Play needs a higher version code for every upload, so each
-      # build uses its run number.
-      - name: Number this build
-        run: sed -i "s/versionCode 1$/versionCode ${GITHUB_RUN_NUMBER}/" android/app/build.gradle
-
+      # The run number becomes the version code (Play needs a higher one for
+      # every upload) and the build number shown on the Now screen.
       - name: Build the APK
-        working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew :app:assembleRelease -PbuildNumber=${GITHUB_RUN_NUMBER} --no-daemon
+
+      # Stops a build that wouldn't install over the app already on the phone.
+      # This is the SHA-256 of the public React Native debug key in
+      # native/app/debug.keystore, which the Expo app's APKs were signed with.
+      - name: Check the APK is signed with the usual key
+        run: |
+          expected_signer="fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          actual_signer="$("$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk | grep -m1 'SHA-256' | awk '{print $NF}')"
+          echo "APK signer: $actual_signer"
+          if [ "$actual_signer" != "$expected_signer" ]; then
+            echo "::error::The APK is signed with a different key, so it would not install over the current app."
+            exit 1
+          fi
 
       # The bundle uploaded to Google Play, signed with your own upload key
       # from the repo's secrets. Skipped until those secrets are added.
       - name: Build the Google Play bundle
-        working-directory: android
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -100,7 +99,7 @@ jobs:
           keystore_path="$RUNNER_TEMP/upload-key.jks"
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
           # These properties replace the build's debug signing for this command only.
-          ./gradlew bundleRelease --no-daemon \
+          ./gradlew :app:bundleRelease -PbuildNumber=${GITHUB_RUN_NUMBER} --no-daemon \
             -Pandroid.injected.signing.store.file="$keystore_path" \
             -Pandroid.injected.signing.store.password="$ANDROID_KEYSTORE_PASSWORD" \
             -Pandroid.injected.signing.key.alias="$ANDROID_KEY_ALIAS" \
@@ -109,21 +108,26 @@ jobs:
 
       # Hands the APK (and Play bundle, if any) to the jobs below by putting
       # them on a draft release. Drafts are only visible to the repo's owner.
-      # The publish job makes it a normal release; for pull requests the
-      # clean-up job deletes it.
+      # The publish job makes it a normal release (or a pre-release).
       - name: Put the build on a draft release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           BUILD_NUMBER: ${{ github.run_number }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+          # For pull requests, the branch's own commit rather than the temporary merge commit.
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
+          # The version name (e.g. 2.0.0) goes in the file name too.
+          aapt2="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2"
+          version_name="$("$aapt2" dump badging app/build/outputs/apk/release/app-release.apk | grep -oP "versionName='\K[^']+")"
           release_tag="build-${BUILD_NUMBER}"
-          apk_name="h-off-build-${BUILD_NUMBER}.apk"
-          aab_name="h-off-build-${BUILD_NUMBER}-play.aab"
-          cp android/app/build/outputs/apk/release/app-release.apk "$apk_name"
+          apk_name="h-off-${version_name}-build-${BUILD_NUMBER}.apk"
+          aab_name="h-off-${version_name}-build-${BUILD_NUMBER}-play.aab"
+          cp app/build/outputs/apk/release/app-release.apk "$apk_name"
           release_files=("$apk_name")
-          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
-            cp android/app/build/outputs/bundle/release/app-release.aab "$aab_name"
+          if [ -f app/build/outputs/bundle/release/app-release.aab ]; then
+            cp app/build/outputs/bundle/release/app-release.aab "$aab_name"
             release_files+=("$aab_name")
           fi
 
@@ -133,9 +137,9 @@ jobs:
           else
             gh release create "$release_tag" "${release_files[@]}" \
               --draft \
-              --target "$GITHUB_SHA" \
-              --title "h.off build ${BUILD_NUMBER}" \
-              --notes "Built from ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}. Open the .apk on your phone to install or update. The .aab (if any) is for Google Play."
+              --target "$COMMIT_SHA" \
+              --title "h.off ${version_name} build ${BUILD_NUMBER}" \
+              --notes "Built from ${BRANCH_NAME} at ${COMMIT_SHA::7}. Open the .apk on your phone to install or update. The .aab (if any) is for Google Play."
           fi
 
   launch-test:
@@ -151,13 +155,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          gh release download "build-${BUILD_NUMBER}" --pattern "h-off-build-${BUILD_NUMBER}.apk"
-          mv "h-off-build-${BUILD_NUMBER}.apk" app-release.apk
-
-      # R8 renames and removes unused code; this makes sure the background
-      # "wash finished" check's classes survived it.
-      - name: Check the shrinker kept the background-work classes
-        run: ./scripts/check-kept-classes.sh app-release.apk
+          gh release download "build-${BUILD_NUMBER}" --pattern "h-off-*-build-${BUILD_NUMBER}.apk"
+          mv h-off-*-build-"${BUILD_NUMBER}".apk app-release.apk
 
       - name: Let the emulator use hardware acceleration
         run: |
@@ -191,7 +190,6 @@ jobs:
   publish:
     name: Publish the APK
     needs: launch-test
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write # needed to create the release that holds the APK
@@ -205,8 +203,9 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
           IS_MAIN: ${{ github.ref == 'refs/heads/main' }}
         run: |
-          # Builds of other branches are marked as pre-releases, so the
-          # "latest" release is always the newest build of main.
+          # Builds of other branches and pull requests are marked as
+          # pre-releases, so the "latest" release is always the newest build
+          # of main.
           release_kind_flags=(--latest)
           if [ "$IS_MAIN" != "true" ]; then release_kind_flags=(--prerelease --latest=false); fi
 
@@ -242,8 +241,8 @@ jobs:
           GH_REPO: ${{ github.repository }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          gh release download "build-${BUILD_NUMBER}" --pattern "h-off-build-${BUILD_NUMBER}-play.aab"
-          mv "h-off-build-${BUILD_NUMBER}-play.aab" app-release.aab
+          gh release download "build-${BUILD_NUMBER}" --pattern "h-off-*-build-${BUILD_NUMBER}-play.aab"
+          mv h-off-*-build-"${BUILD_NUMBER}"-play.aab app-release.aab
 
       # "alpha" is the track the Play Console calls "Closed testing - Alpha".
       - name: Upload the bundle to the closed test
@@ -255,20 +254,3 @@ jobs:
           releaseFiles: app-release.aab
           track: alpha
           status: completed
-
-  # Pull request builds are never published, so their draft release is
-  # deleted once the emulator check has used it.
-  delete-pr-draft:
-    name: Delete the pull request's draft release
-    needs: [build-apk, launch-test]
-    if: always() && github.event_name == 'pull_request' && needs.build-apk.result == 'success'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Delete the draft
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          BUILD_NUMBER: ${{ github.run_number }}
-        run: gh release delete "build-${BUILD_NUMBER}" --yes || echo "No draft to delete."
