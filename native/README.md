@@ -1,7 +1,7 @@
-# h.off, native version
+# h.off, native app
 
-The Kotlin + Jetpack Compose rewrite of h.off. It replaces the Expo app in the
-folder above once it does everything that one does (phase 7 of the plan).
+The Kotlin + Jetpack Compose app. See the [main README](../README.md) for what
+it does and how to install it.
 
 | Module | What's in it |
 | --- | --- |
@@ -25,6 +25,6 @@ Without `-PbuildNumber` the Now screen says "local build" and the version code i
 ## Signing
 
 - The APK is signed with the public React Native debug key in `app/debug.keystore`
-  (password `android`), the same key the Expo app's GitHub APKs used, so it
+  (password `android`), the same key the version 1 (Expo) APKs used, so it
   installs over them. It is not a secret.
 - The Play bundle is signed in CI with the upload key from the repo's secrets.

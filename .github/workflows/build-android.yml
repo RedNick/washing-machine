@@ -12,10 +12,10 @@
 #
 # Builds are published on the repo's Releases page as a plain .apk file you
 # can open straight on the phone. Builds of main are the "latest" release;
-# every other build (including pull requests, while the native app is being
-# built) is a pre-release.
+# every other build (including pull requests) is a pre-release, so a
+# branch can be tried on the phone before it merges.
 #
-# The APK is signed with the same public debug key as the Expo app's APKs,
+# The APK is signed with the same public debug key as version 1's APKs,
 # so it installs over them. The Play bundle is signed with the upload key.
 
 name: Build Android APK
