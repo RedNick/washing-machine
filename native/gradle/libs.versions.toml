@@ -43,7 +43,8 @@ androidx-browser = { group = "androidx.browser", name = "browser", version.ref =
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
-sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+# Only the core SDK: no native (NDK) crash handler or session replay, which h.off doesn't use.
+sentry-android-core = { group = "io.sentry", name = "sentry-android-core", version.ref = "sentry" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

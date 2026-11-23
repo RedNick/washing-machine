@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">h.off</string>
+	<string name="widget_description">What the washing machine is doing and when it will be done</string>
+	<string name="tile_label">Washer</string>
 </resources>

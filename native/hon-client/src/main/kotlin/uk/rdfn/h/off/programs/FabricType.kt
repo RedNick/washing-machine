@@ -50,8 +50,8 @@ enum class FabricType(val title: String) {
 		/** Words that only name a colour. These programs take their fabric from h.on's hint. */
 		private val COLOUR_ONLY_KEYWORDS = listOf("white", "colour", "color", "dark", "denim", "bleach")
 
-		/** A saved fabric name back to a fabric, or null for an old or garbled value. */
-		fun fromSavedName(savedName: String?): FabricType? = entries.firstOrNull { it.name == savedName }
+		/** A saved fabric name back to a fabric, or null for a garbled value. Any letter case, so the old app's "cotton" still works. */
+		fun fromSavedName(savedName: String?): FabricType? = entries.firstOrNull { it.name.equals(savedName, ignoreCase = true) }
 
 		/** "PROGRAMS.WM_WD.IOT_DRY_SHIRTS" + "Dry shirts" → "iot dry shirts dry shirts". */
 		private fun searchTextFor(program: WasherProgram): String {

@@ -2,8 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
 	<uses-permission android:name="android.permission.INTERNET" />
+	<!-- The "wash finished" alert and the live countdown (asked for on Android 13 and later). -->
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
 	<application
+		android:name=".HOffApplication"
 		android:allowBackup="false"
 		android:icon="@mipmap/launcher_icon"
 		android:label="@string/app_name"
@@ -11,14 +14,75 @@
 		android:supportsRtl="true"
 		android:theme="@style/Theme.HOff">
 
+		<!-- Crash reporting starts only if you switch it on in Settings (see CrashReporting.kt). -->
+		<meta-data
+			android:name="io.sentry.auto-init"
+			android:value="false" />
+
+		<!-- singleTask: the sign-in link comes back to the open app instead of starting a second copy. -->
 		<activity
 			android:name=".MainActivity"
 			android:exported="true"
+			android:launchMode="singleTask"
 			android:windowSoftInputMode="adjustResize">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
+			<!-- Where Haier's sign-in page sends you back to: hon://mobilesdk/detect/oauth/done#... -->
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data
+					android:host="mobilesdk"
+					android:pathPrefix="/detect/oauth/done"
+					android:scheme="hon" />
+			</intent-filter>
 		</activity>
+
+		<!-- Shows "Washing is done" when the finish alarm goes off. -->
+		<receiver
+			android:name=".notifications.FinishAlertReceiver"
+			android:exported="false" />
+
+		<!-- The home-screen widget. -->
+		<receiver
+			android:name=".widget.WasherWidgetReceiver"
+			android:exported="true"
+			android:label="@string/app_name">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+			</intent-filter>
+			<meta-data
+				android:name="android.appwidget.provider"
+				android:resource="@xml/washer_widget_info" />
+		</receiver>
+
+		<!-- The Quick Settings tile. -->
+		<service
+			android:name=".tile.WasherTileService"
+			android:exported="true"
+			android:icon="@drawable/notification_icon"
+			android:label="@string/tile_label"
+			android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+			<intent-filter>
+				<action android:name="android.service.quicksettings.action.QS_TILE" />
+			</intent-filter>
+			<meta-data
+				android:name="android.service.quicksettings.ACTIVE_TILE"
+				android:value="false" />
+		</service>
+
+		<!-- Lets "Send a report" hand the report file to the app you choose. -->
+		<provider
+			android:name="androidx.core.content.FileProvider"
+			android:authorities="${applicationId}.reports"
+			android:exported="false"
+			android:grantUriPermissions="true">
+			<meta-data
+				android:name="android.support.FILE_PROVIDER_PATHS"
+				android:resource="@xml/report_file_paths" />
+		</provider>
 	</application>
 </manifest>

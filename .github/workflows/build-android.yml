@@ -53,6 +53,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # needed to create the draft release that carries the build
+    env:
+      # Where crash reports go, if you switch them on in Settings. Without it the switch stays disabled.
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      # The deployed wash report worker, e.g. https://h-off-wash-reports.<you>.workers.dev.
+      # Without it the "Wash reports" switch stays disabled.
+      WASH_REPORT_URL: ${{ secrets.WASH_REPORT_URL }}
     defaults:
       run:
         working-directory: native
@@ -184,7 +190,7 @@ jobs:
           name: launch-test
           path: |
             launch-logcat.txt
-            launch-screenshot.png
+            launch-*.png
           retention-days: 7
 
   publish:
