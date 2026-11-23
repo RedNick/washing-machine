@@ -103,6 +103,9 @@ sleep 4
 check_still_running "the History tab"
 screenshot "history"
 
+# The button is under the History cards.
+scroll_down
+scroll_down
 tap_text "Settings and reports"
 sleep 3
 check_still_running "Settings"
