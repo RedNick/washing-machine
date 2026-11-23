@@ -1,0 +1,58 @@
+{
+	"applianceModel": { "options": { "opt1": "prewash", "opt5": "extraRinse1" } },
+	"startProgram": {
+		"PROGRAMS.WM_WD.COTTONS": {
+			"description": "For cotton garments.",
+			"protocolType": "MQTT",
+			"parameters": {
+				"prCode": { "category": "command", "typology": "fixed", "mandatory": 1, "fixedValue": "201" },
+				"temp": { "category": "command", "typology": "enum", "mandatory": 1, "defaultValue": "40", "enumValues": [0, 20, 40, 60, 90] },
+				"spinSpeed": { "category": "command", "typology": "enum", "mandatory": 1, "defaultValue": "1400", "enumValues": [0, 800, 1400] },
+				"delayTime": { "category": "command", "typology": "range", "mandatory": 1, "defaultValue": "0", "minimumValue": "0", "maximumValue": "1410", "incrementValue": "30" },
+				"prewash": { "category": "command", "typology": "range", "mandatory": 1, "defaultValue": "0", "minimumValue": "0", "maximumValue": "1", "incrementValue": "1" },
+				"weight": { "category": "command", "typology": "fixed", "mandatory": 1, "fixedValue": "40" },
+				"prStr": { "category": "command", "typology": "fixed", "mandatory": 1, "fixedValue": "" },
+				"lang": { "category": "command", "typology": "range", "mandatory": 1, "defaultValue": "0", "minimumValue": "0", "maximumValue": "30", "incrementValue": "1" },
+				"delayStatus": { "category": "command", "typology": "enum", "mandatory": 1, "defaultValue": "0", "enumValues": [0, 1] },
+				"extraRinse1": { "category": "command", "typology": "enum", "mandatory": 1, "defaultValue": "1", "enumValues": [0, 1] },
+				"extraRinse2": { "category": "command", "typology": "enum", "mandatory": 1, "defaultValue": "0", "enumValues": [0, 1] }
+			},
+			"ancillaryParameters": {
+				"remoteVisible": { "category": "general", "typology": "fixed", "mandatory": 0, "fixedValue": "1" },
+				"suggestedLoadW": { "category": "general", "typology": "fixed", "mandatory": 1, "fixedValue": 12 },
+				"suggestedLoadWD": { "category": "general", "typology": "fixed", "mandatory": 1, "fixedValue": null },
+				"programFamily": { "category": "cluster", "typology": "enum", "mandatory": 1, "enumValues": ["dashboard"], "defaultValue": "[dashboard]" },
+				"programRules": { "category": "rule", "typology": "fixed", "fixedValue": "{}" }
+			},
+			"remainingTimes": { "remainingTime": { "category": "time", "typology": "fixed", "mandatory": 1, "fixedValue": "163" } }
+		},
+		"PROGRAMS.WM_WD.ECO_40_60_NEW_ENERGY_LABEL": {
+			"description": "Efficient wash.",
+			"parameters": { "prCode": { "category": "command", "typology": "fixed", "fixedValue": "202" } }
+		},
+		"PROGRAMS.WM_WD.IOT_WASH_MEN_S_TROUSERS": {
+			"description": "App-only program.",
+			"parameters": { "prCode": { "category": "command", "typology": "fixed", "fixedValue": "300" } }
+		},
+		"PROGRAMS.WM_WD.IOT_WASH_BED_LINEN": {
+			"parameters": { "prCode": { "category": "command", "typology": "fixed", "fixedValue": "301" } }
+		},
+		"PROGRAMS.WM_WD.IOT_RECIPE_SECRET": {
+			"parameters": { "prCode": { "category": "command", "typology": "fixed", "fixedValue": "400" } }
+		},
+		"PROGRAMS.WM_WD.HIDDEN_ONE": {
+			"parameters": { "prCode": { "category": "command", "typology": "fixed", "fixedValue": "401" } },
+			"ancillaryParameters": { "remoteVisible": { "category": "general", "typology": "fixed", "fixedValue": "0" } }
+		}
+	},
+	"stopProgram": {
+		"description": "The message allows to stop the program",
+		"parameters": { "onOffStatus": { "category": "command", "typology": "fixed", "mandatory": 1, "fixedValue": "0" } }
+	},
+	"pauseProgram": {
+		"parameters": { "pause": { "category": "command", "typology": "fixed", "mandatory": 1, "fixedValue": "1" } }
+	},
+	"resumeProgram": {
+		"parameters": { "pause": { "category": "command", "typology": "fixed", "mandatory": 1, "fixedValue": "0" } }
+	}
+}

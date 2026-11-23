@@ -81,8 +81,8 @@ adb shell am broadcast -a com.android.systemui.demo -e command notifications -e 
 # Open the app from its launcher entry. monkey finds the launcher activity
 # itself, so this doesn't depend on the activity's class name.
 adb shell monkey -p "$package_name" -c android.intent.category.LAUNCHER 1 > /dev/null
-# The first launch loads the app's JavaScript, so give it time.
-sleep 20
+# Give the first launch time to draw.
+sleep 10
 take_screenshot 1-welcome
 
 tap_text "Try the demo machine"

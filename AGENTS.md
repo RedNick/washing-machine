@@ -1,41 +1,28 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+h.off is a native Android app in Kotlin with Jetpack Compose, in `native/`. The Cloudflare Worker for wash reports is a separate TypeScript project in `wash-report-worker/`.
 
-## Expo has changed — do not trust your training data
+## Check versions, don't trust memory
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+Android libraries change quickly. Before adding or upgrading a library, check its current stable version on its official release page (developer.android.com/jetpack/androidx/releases/…, kotlinlang.org, the library's GitHub releases). `dl.google.com` may be blocked in cloud sessions, so read the release pages rather than the Maven index. All versions live in `native/gradle/libs.versions.toml`; keep the "checked on" date there current.
 
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
+When unsure of an API, look at the library's own classes (for example `javap` on the downloaded jar) or its docs instead of guessing.
 
 ## Commands
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
+Run from `native/`, with JDK 21 and the Android SDK (platform 37.2, build tools 36):
 
 ```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+./gradlew :hon-client:test :app:testDebugUnitTest   # unit tests
+./gradlew :app:lintRelease                           # Android lint
+./gradlew :app:assembleRelease -PbuildNumber=999     # release APK
 ```
 
-Run lint and typecheck before declaring any task done.
-
-## Navigation & Routing
-
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
-
-## Building with EAS
-
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
+Run the tests and lint before declaring any task done. CI (`.github/workflows/build-android.yml`) runs the same, then opens the APK on an emulator with `scripts/launch-test.sh`.
 
 ## Rules
 
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+- **Never change** the application id `uk.rdfn.h.off`, the debug signing key in `native/app/debug.keystore`, or the name of `build-android.yml`: the version code is that workflow's run number, and Play needs it to keep rising.
+- Every build shows its version and build number on the Now screen (`describeAppVersion()`).
+- Code that doesn't need Android goes in `hon-client/` with a unit test. The app module is for screens and phone services.
+- Screens talk to the machine only through `WasherRepository` and the `WasherService` interface, so the demo machine keeps working.
+- UK English in the app and comments. Tab indentation in Kotlin and Gradle files (YAML keeps spaces). Readable names and comments that say why.
+- Never put personal details, tokens or passwords in code, logs or reports. Reports go through `PrivateDetails.redact`.

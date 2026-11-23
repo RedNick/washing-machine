@@ -3,13 +3,7 @@
 # dependencies
 node_modules/
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
+# Native (Gradle and Kotlin build output is ignored in native/.gitignore)
 .kotlin/
 *.orig.*
 *.jks
@@ -17,9 +11,6 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
-
-# Metro
-.metro-health-check*
 
 # debug
 npm-debug.*

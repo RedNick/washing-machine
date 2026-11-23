@@ -1,6 +1,8 @@
 // Renders the h.off app icons (into assets/) and the Google Play listing art
 // (into assets/store/) from SVG. Needs Playwright with Chromium installed:
 //   node scripts/render-icons.js
+// The app itself uses copies in native/app/src/main/res/ (launcher_foreground.png
+// and launcher_monochrome.png): copy them over after changing the icon.
 const { chromium } = require('playwright');
 const path = require('path');
 
